@@ -39,27 +39,21 @@ class App {
       },
       
       inputs: {
-        // Albedo
         albedoContrast: document.getElementById('albedoContrast'),
         albedoSaturation: document.getElementById('albedoSaturation'),
         albedoTint: document.getElementById('albedoTint'),
-        // Normal
         normalStrength: document.getElementById('normalStrength'),
         normalIntensity: document.getElementById('normalIntensity'),
-        // Height
         heightContrast: document.getElementById('heightContrast'),
         heightOffset: document.getElementById('heightOffset'),
         dispSlider: document.getElementById('dispSlider'),
-        // Roughness
         roughnessContrast: document.getElementById('roughnessContrast'),
         roughnessLow: document.getElementById('roughnessLow'),
         roughnessHigh: document.getElementById('roughnessHigh'),
         roughnessOffset: document.getElementById('roughnessOffset'),
         roughnessInvert: document.getElementById('roughnessInvert'),
-        // AO
         aoAmount: document.getElementById('aoAmount'),
         aoContrast: document.getElementById('aoContrast'),
-        // Metallic
         metallicSlider: document.getElementById('metallicSlider')
       },
       
@@ -100,7 +94,6 @@ class App {
       this.downloadSingleCanvas(this.dom.canvases[this.activeLayer], `${this.activeLayer}.png`);
     });
 
-    // HDRI
     this.dom.hdriSelect.addEventListener('change', (e) => {
       this.viewer3D.loadHDRI(e.target.value);
     });
@@ -111,7 +104,6 @@ class App {
       this.viewer3D.setHDRIRotation(deg);
     });
 
-    // Pestañas
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const layer = e.target.dataset.layer;
@@ -119,7 +111,6 @@ class App {
       });
     });
 
-    // Inputs
     Object.values(this.dom.inputs).forEach(input => {
       input.addEventListener('input', () => {
         this.updateLabels();
@@ -127,7 +118,6 @@ class App {
       });
     });
 
-    // Malla 3D
     document.querySelectorAll('.mesh-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         document.querySelectorAll('.mesh-btn').forEach(b => b.classList.remove('active'));
@@ -265,26 +255,22 @@ class App {
 
     const inp = this.dom.inputs;
 
-    // Albedo
     const albedoData = PBRGenerator.generateAlbedo(imageData, lowFreqBig, w, h, {
       contrast: parseFloat(inp.albedoContrast.value),
       saturation: parseFloat(inp.albedoSaturation.value),
       tint: inp.albedoTint.value
     });
 
-    // Normal
     const normalData = PBRGenerator.generateNormal(Lsmooth, w, h, {
       strength: parseFloat(inp.normalStrength.value),
       intensity: parseFloat(inp.normalIntensity.value)
     });
 
-    // Height
     const heightData = PBRGenerator.generateHeight(luminance, w, h, {
       contrast: parseFloat(inp.heightContrast.value),
       offset: parseFloat(inp.heightOffset.value)
     });
 
-    // Roughness
     const roughnessData = PBRGenerator.generateRoughness(luminance, w, h, {
       contrast: parseFloat(inp.roughnessContrast.value),
       low: parseFloat(inp.roughnessLow.value),
@@ -293,17 +279,14 @@ class App {
       invert: inp.roughnessInvert.checked
     });
 
-    // AO
     const aoData = PBRGenerator.generateAO(luminance, w, h, {
       amount: parseFloat(inp.aoAmount.value),
       contrast: parseFloat(inp.aoContrast.value)
     });
 
-    // Metallic
     const metallicVal = parseFloat(inp.metallicSlider.value);
     const metallicData = PBRGenerator.generateMetallic(w, h, metallicVal);
 
-    // Pintar canvas
     this.drawToCanvas(this.dom.canvases.albedo, albedoData);
     this.drawToCanvas(this.dom.canvases.normal, normalData);
     this.drawToCanvas(this.dom.canvases.roughness, roughnessData);
@@ -311,7 +294,6 @@ class App {
     this.drawToCanvas(this.dom.canvases.ao, aoData);
     this.drawToCanvas(this.dom.canvases.metallic, metallicData);
 
-    // Actualizar 3D
     const dispVal = parseFloat(inp.dispSlider.value);
     this.viewer3D.updateTextures(this.dom.canvases, { disp: dispVal, metallic: metallicVal });
   }

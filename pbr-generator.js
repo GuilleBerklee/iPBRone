@@ -60,7 +60,6 @@ export class PBRGenerator {
     return boxBlurV(boxBlurH(src));
   }
 
-  // ALBEDO: Contraste, Tint y Saturación
   static generateAlbedo(imageData, lowFreq, w, h, opts = {}) {
     const { contrast = 1.0, tint = '#ffffff', saturation = 1.0 } = opts;
     const data = imageData.data;
@@ -79,18 +78,15 @@ export class PBRGenerator {
       let g = (data[j + 1] * factor) / 255;
       let b = (data[j + 2] * factor) / 255;
 
-      // Saturación
       const lum = 0.299 * r + 0.587 * g + 0.114 * b;
       r = lum + (r - lum) * saturation;
       g = lum + (g - lum) * saturation;
       b = lum + (b - lum) * saturation;
 
-      // Contraste
       r = (r - 0.5) * contrast + 0.5;
       g = (g - 0.5) * contrast + 0.5;
       b = (b - 0.5) * contrast + 0.5;
 
-      // Tint
       r *= tr;
       g *= tg;
       b *= tb;
@@ -103,7 +99,6 @@ export class PBRGenerator {
     return out;
   }
 
-  // NORMAL: Strength e Intensity (contraste)
   static generateNormal(Lsmooth, w, h, opts = {}) {
     const { strength = 2.5, intensity = 1.0 } = opts;
     const out = new ImageData(w, h);
@@ -138,7 +133,6 @@ export class PBRGenerator {
     return out;
   }
 
-  // HEIGHT: Contraste y Offset
   static generateHeight(L, w, h, opts = {}) {
     const { contrast = 1.0, offset = 0.0, strength = 1.0 } = opts;
     const lowFreq = this.boxBlur(L, w, h, 2);
@@ -157,7 +151,6 @@ export class PBRGenerator {
     return out;
   }
 
-  // ROUGHNESS: Contraste, Low, High, Offset e Invertir
   static generateRoughness(L, w, h, opts = {}) {
     const { contrast = 1.0, low = 0.0, high = 1.0, offset = 0.0, invert = false } = opts;
     const L2 = new Float32Array(L.length);
@@ -192,7 +185,6 @@ export class PBRGenerator {
     return out;
   }
 
-  // AO: Contrast y Amount
   static generateAO(L, w, h, opts = {}) {
     const { amount = 3.0, contrast = 1.0 } = opts;
     const local = this.boxBlur(L, w, h, 4);

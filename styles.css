@@ -128,7 +128,6 @@ button.icon svg { width: 16px; height: 16px; }
 
 #results { display: none; }
 
-/* Visor 3D y prevención de estiramiento */
 .viewer-3d-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 18px; }
 .viewer-3d-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--border); }
 .viewer-3d-header h3 { font-size: 14px; margin: 0; }
