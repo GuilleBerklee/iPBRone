@@ -89,7 +89,25 @@
           <button class="mesh-btn" data-mesh="plane">Plano</button>
         </div>
       </div>
-      <div id="canvas3d-container"></div>
+      <div id="canvas3d-container">
+        <div class="hdri-controls">
+          <div class="control-row">
+            <label for="hdriSelect">Entorno HDRI:</label>
+            <select id="hdriSelect">
+              <option value="estudio.exr">Estudio</option>
+              <option value="exterior.exr">Exterior / Sol</option>
+              <option value="interior.exr">Interior</option>
+            </select>
+          </div>
+          <div class="control-row">
+            <label for="hdriRotation">
+              <span>Rotación de Luz</span>
+              <span id="hdriRotVal">0°</span>
+            </label>
+            <input type="range" id="hdriRotation" min="0" max="360" step="1" value="0">
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Pestañas de Capas 2D -->

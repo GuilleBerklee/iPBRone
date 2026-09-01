@@ -217,4 +217,43 @@ button.icon svg { width: 16px; height: 16px; }
 .actions { display: flex; gap: 10px; margin-bottom: 22px; }
 .actions button { flex: 1; }
 
+.hdri-controls {
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hdri-controls .control-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.hdri-controls label {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  color: var(--text-dim);
+}
+
+.hdri-controls select {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 12px;
+  outline: none;
+}
+
+.hdri-controls input[type=range] {
+  width: 60%;
+  accent-color: var(--warm);
+}
+
 footer { margin-top: 8px; font-size: 12px; color: var(--text-dim); text-align: center; }

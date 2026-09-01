@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EXRLoader } from 'three/addons/loaders/EXRLoader.js';
 
 export class MaterialViewer3D {
   constructor(containerId) {
@@ -11,6 +12,8 @@ export class MaterialViewer3D {
     this.mesh = null;
     this.material = null;
     this.textures = {};
+    this.currentHDRI = null;
+    this.exrLoader = new EXRLoader();
     this.initialized = false;
   }
 
@@ -20,15 +23,12 @@ export class MaterialViewer3D {
     const w = this.container.clientWidth || 300;
     const h = this.container.clientHeight || 300;
 
-    // Escena
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x0d0e10);
 
-    // Cámara
     this.camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
     this.camera.position.set(0, 0, 3.5);
 
-    // Renderer
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.setSize(w, h);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -36,42 +36,34 @@ export class MaterialViewer3D {
     this.renderer.toneMappingExposure = 1.0;
     this.container.appendChild(this.renderer.domElement);
 
-    // Controles
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.05;
     this.controls.enableZoom = true;
 
-    // Luces
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+    // Luces de apoyo
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
     this.scene.add(ambientLight);
 
-    const mainLight = new THREE.DirectionalLight(0xffffff, 1.5);
+    const mainLight = new THREE.DirectionalLight(0xffffff, 1.0);
     mainLight.position.set(3, 4, 3);
     this.scene.add(mainLight);
 
-    const fillLight = new THREE.DirectionalLight(0x7c83ff, 0.5);
-    fillLight.position.set(-3, -2, -2);
-    this.scene.add(fillLight);
-
-    // Material
+    // Material inicial
     this.material = new THREE.MeshStandardMaterial({
       roughness: 0.5,
       metalness: 0.0,
       side: THREE.DoubleSide
     });
 
-    // Malla inicial
     const geometry = new THREE.SphereGeometry(1, 128, 128);
-    geometry.attributes.uv2 = geometry.attributes.uv;
+    geometry.setAttribute('uv2', new THREE.BufferAttribute(geometry.attributes.uv.array, 2));
     this.mesh = new THREE.Mesh(geometry, this.material);
     this.scene.add(this.mesh);
 
-    // Resize observer
     const resizeObserver = new ResizeObserver(() => this.resize());
     resizeObserver.observe(this.container);
 
-    // Bucle de render
     const animate = () => {
       requestAnimationFrame(animate);
       this.controls.update();
@@ -80,6 +72,32 @@ export class MaterialViewer3D {
     animate();
 
     this.initialized = true;
+  }
+
+  loadHDRI(filename) {
+    if (!this.initialized) this.init();
+    if (!filename) return;
+
+    const path = `assets/environment/${filename}`;
+    this.exrLoader.load(path, (texture) => {
+      if (this.currentHDRI) this.currentHDRI.dispose();
+
+      this.currentHDRI = texture;
+      texture.mapping = THREE.EquirectangularReflectionMapping;
+      
+      this.scene.environment = texture;
+      this.scene.background = texture;
+      this.scene.backgroundBlurriness = 0.5; // Desenfoca el fondo para no distraer de la malla
+    }, undefined, (err) => {
+      console.warn(`No se pudo cargar el mapa HDRI: ${path}`, err);
+    });
+  }
+
+  setHDRIRotation(degrees) {
+    if (!this.scene) return;
+    const radians = THREE.MathUtils.degToRad(degrees);
+    this.scene.environmentRotation.y = radians;
+    this.scene.backgroundRotation.y = radians;
   }
 
   setMeshType(type) {
@@ -94,8 +112,7 @@ export class MaterialViewer3D {
       this.mesh.geometry = new THREE.PlaneGeometry(2, 2, 128, 128);
     }
     
-    // Canal UV2 necesario para el mapa de Oclusión Ambiental
-    this.mesh.geometry.attributes.uv2 = this.mesh.geometry.attributes.uv;
+    this.mesh.geometry.setAttribute('uv2', new THREE.BufferAttribute(geometry.attributes.uv.array, 2));
   }
 
   updateTextures(canvases, settings) {
@@ -116,6 +133,7 @@ export class MaterialViewer3D {
     if (this.textures.displacementMap) this.textures.displacementMap.dispose();
 
     this.textures.map = createTexture(canvases.albedo);
+    this.textures.map.colorSpace = THREE.SRGBColorSpace;
     this.textures.normalMap = createTexture(canvases.normal);
     this.textures.roughnessMap = createTexture(canvases.roughness);
     this.textures.aoMap = createTexture(canvases.ao);
@@ -141,9 +159,5 @@ export class MaterialViewer3D {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h);
-  }
-
-  onResize() {
-    this.resize();
   }
 }

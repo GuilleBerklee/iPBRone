@@ -25,6 +25,10 @@ class App {
       downloadCurrentBtn: document.getElementById('downloadCurrentBtn'),
       resSelect: document.getElementById('resSelect'),
       currentLayerTitle: document.getElementById('currentLayerTitle'),
+
+      hdriSelect: document.getElementById('hdriSelect'),
+      hdriRotation: document.getElementById('hdriRotation'),
+      hdriRotVal: document.getElementById('hdriRotVal'),
       
       canvases: {
         albedo: document.getElementById('albedoCanvas'),
@@ -61,6 +65,15 @@ class App {
       const banner = document.getElementById('secureBanner');
       if (banner) banner.style.display = 'block';
     }
+    this.dom.hdriSelect.addEventListener('change', (e) => {
+      this.viewer3D.loadHDRI(e.target.value);
+    });
+
+    this.dom.hdriRotation.addEventListener('input', (e) => {
+      const deg = parseFloat(e.target.value);
+      this.dom.hdriRotVal.textContent = `${deg}°`;
+      this.viewer3D.setHDRIRotation(deg);
+    });
   }
 
   bindEvents() {
@@ -218,6 +231,7 @@ class App {
     // Se da un pequeño margen de tiempo para repintar la vista antes del cálculo intensivo
     setTimeout(() => {
       this.viewer3D.init();
+      this.viewer3D.loadHDRI(this.dom.hdriSelect.value); // Carga el HDRI activo
       this.viewer3D.resize();
       this.processPBR();
       this.setActiveLayer('albedo');
