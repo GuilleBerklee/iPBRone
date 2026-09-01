@@ -36,13 +36,13 @@ export class MaterialViewer3D {
     this.renderer.toneMappingExposure = 1.0;
     this.container.appendChild(this.renderer.domElement);
 
-    // Controles de cámara táctiles/ratón
+    // Controles
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.05;
     this.controls.enableZoom = true;
 
-    // Luces PBR
+    // Luces
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
     this.scene.add(ambientLight);
 
@@ -54,7 +54,7 @@ export class MaterialViewer3D {
     fillLight.position.set(-3, -2, -2);
     this.scene.add(fillLight);
 
-    // Material base
+    // Material
     this.material = new THREE.MeshStandardMaterial({
       roughness: 0.5,
       metalness: 0.0,
@@ -63,14 +63,15 @@ export class MaterialViewer3D {
 
     // Malla inicial
     const geometry = new THREE.SphereGeometry(1, 128, 128);
+    geometry.attributes.uv2 = geometry.attributes.uv;
     this.mesh = new THREE.Mesh(geometry, this.material);
     this.scene.add(this.mesh);
 
     // Resize observer
-    const resizeObserver = new ResizeObserver(() => this.onResize());
+    const resizeObserver = new ResizeObserver(() => this.resize());
     resizeObserver.observe(this.container);
 
-    // Loop de renderizado
+    // Bucle de render
     const animate = () => {
       requestAnimationFrame(animate);
       this.controls.update();
@@ -92,6 +93,9 @@ export class MaterialViewer3D {
     } else if (type === 'plane') {
       this.mesh.geometry = new THREE.PlaneGeometry(2, 2, 128, 128);
     }
+    
+    // Canal UV2 necesario para el mapa de Oclusión Ambiental
+    this.mesh.geometry.attributes.uv2 = this.mesh.geometry.attributes.uv;
   }
 
   updateTextures(canvases, settings) {
@@ -130,12 +134,16 @@ export class MaterialViewer3D {
     this.resize();
   }
 
-  onResize() {
+  resize() {
     if (!this.renderer || !this.container) return;
     const w = this.container.clientWidth;
     const h = this.container.clientHeight || w;
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h);
+  }
+
+  onResize() {
+    this.resize();
   }
 }

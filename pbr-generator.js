@@ -122,6 +122,21 @@ export class PBRGenerator {
     return out;
   }
 
+  static generateHeight(L, w, h, strength, invert) {
+    const lowFreq = this.boxBlur(L, w, h, 2);
+    const out = new ImageData(w, h);
+    const od = out.data;
+
+    for (let p = 0, j = 0; p < w * h; p++, j += 4) {
+      let val = Math.min(1, Math.max(0, lowFreq[p] * strength));
+      if (invert) val = 1 - val;
+      const g = Math.min(255, Math.max(0, val * 255));
+      od[j] = od[j + 1] = od[j + 2] = g;
+      od[j + 3] = 255;
+    }
+    return out;
+  }
+
   static generateAO(L, w, h, strength) {
     const local = this.boxBlur(L, w, h, 4);
     const out = new ImageData(w, h);
