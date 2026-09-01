@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="PBR Capture">
+    <title>PBR Texture Capture</title>
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .camera-container {
+            flex: 1;
+            position: relative;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        video, canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        canvas { display: none; }
+
+        .controls {
+            height: 120px;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding-bottom: 20px; /* Margen para la barra inferior del iPhone */
+        }
+
+        .btn-capture {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 4px solid #ffffff;
+            background: transparent;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .btn-capture::after {
+            content: '';
+            position: absolute;
+            top: 4px; left: 4px; right: 4px; bottom: 4px;
+            border-radius: 50%;
+            background: #ffffff;
+            transition: transform 0.1s ease;
+        }
+
+        .btn-capture:active::after {
+            transform: scale(0.85);
+        }
+
+        .btn-secondary {
+            background: #2c2c2e;
+            color: #fff;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .status {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.6);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="camera-container">
+        <div id="status" class="status">Iniciando cámara...</div>
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <div class="controls">
+        <button id="btn-retake" class="btn-secondary" style="visibility: hidden;">Repetir</button>
+        <button id="btn-snap" class="btn-capture"></button>
+        <button id="btn-next" class="btn-secondary" style="visibility: hidden;">Usar foto</button>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const status = document.getElementById('status');
+        const btnSnap = document.getElementById('btn-snap');
+        const btnRetake = document.getElementById('btn-retake');
+        const btnNext = document.getElementById('btn-next');
+        
+        let stream = null;
+
+        // Configuración e inicio de la cámara en iOS
+        async function initCamera() {
+            try {
+                // Forzar uso de la cámara trasera con alta resolución
+                const constraints = {
+                    video: {
+                        facingMode: { exact: "environment" },
+                        width: { ideal: 2048 },
+                        height: { ideal: 2048 }
+                    },
+                    audio: false
+                };
+
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia(constraints);
+                } catch (e) {
+                    // Fallback a cualquier cámara trasera si 'exact' falla
+                    stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { facingMode: "environment" }, 
+                        audio: false 
+                    });
+                }
+
+                video.srcObject = stream;
+                status.innerText = "Cámara lista";
+            } catch (err) {
+                console.error("Error al acceder a la cámara:", err);
+                status.innerText = "Error: Acceso denegado o no soportado";
+            }
+        }
+
+        // Captura del fotograma actual al Canvas
+        btnSnap.addEventListener('click', () => {
+            const context = canvas.getContext('2d');
+            
+            // Ajustar el canvas a las dimensiones reales del video capturado
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            // Dibujar el fotograma
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Intercambiar vista: pausar vídeo y mostrar canvas
+            video.pause();
+            video.style.display = 'none';
+            canvas.style.display = 'block';
+            
+            // Actualizar interfaz
+            btnSnap.style.display = 'none';
+            btnRetake.style.visibility = 'visible';
+            btnNext.style.visibility = 'visible';
+            status.innerText = `Capturado (${canvas.width}x${canvas.height}px)`;
+        });
+
+        // Repetir la toma
+        btnRetake.addEventListener('click', () => {
+            video.style.display = 'block';
+            canvas.style.display = 'none';
+            video.play();
+            
+            btnSnap.style.display = 'block';
+            btnRetake.style.visibility = 'hidden';
+            btnNext.style.visibility = 'hidden';
+            status.innerText = "Cámara lista";
+        });
+
+        // Botón para avanzar al siguiente módulo (Procesamiento PBR)
+        btnNext.addEventListener('click', () => {
+            alert("Foto confirmada. Listo para pasar al módulo de procesamiento de texturas.");
+        });
+
+        // Iniciar la cámara al cargar la página
+        window.addEventListener('DOMContentLoaded', initCamera);
+    </script>
+</body>
+</html>
