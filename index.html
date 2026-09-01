@@ -1,921 +1,904 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html>
+<!DOCTYPE html>
+<html lang="es">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <meta http-equiv="Content-Style-Type" content="text/css">
-  <title></title>
-  <meta name="Generator" content="Cocoa HTML Writer">
-  <meta name="CocoaVersion" content="2685.2">
-  <style type="text/css">
-    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Times; -webkit-text-stroke: #000000}
-    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Times; -webkit-text-stroke: #000000; min-height: 14.0px}
-    span.s1 {font-kerning: none}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#101012">
+<title>Escáner de materiales PBR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#101012;
+    --surface:#1a1b1e;
+    --surface-2:#202226;
+    --border:#2c2d31;
+    --text:#ededed;
+    --text-dim:#97979c;
+    --accent:#7c83ff;
+    --accent-dim:#3d3f7a;
+    --warm:#e8a33d;
+    --warm-dim:#5c471f;
+    --danger:#e2574c;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',system-ui,sans-serif;
+    line-height:1.5;
+    padding-top:env(safe-area-inset-top);
+    padding-bottom:env(safe-area-inset-bottom);
+    -webkit-tap-highlight-color:transparent;
+  }
+  h1,h2,h3,.label,button{font-family:'Space Grotesk',system-ui,sans-serif;}
+  .app{max-width:480px;margin:0 auto;padding:20px 18px 48px;}
+  header{margin-bottom:22px;}
+  header h1{font-size:22px;font-weight:600;margin:0 0 4px;letter-spacing:-0.01em;}
+  header p{font-size:14px;color:var(--text-dim);margin:0;max-width:38ch;}
+
+  .banner{
+    background:var(--surface-2);
+    border:1px solid var(--danger);
+    border-radius:var(--radius);
+    padding:12px 14px;
+    font-size:13px;
+    color:var(--text);
+    margin-bottom:18px;
+  }
+  .banner strong{color:var(--danger);display:block;margin-bottom:2px;font-size:13px;}
+
+  .hint{
+    font-size:13px;
+    color:var(--text-dim);
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:12px 14px;
+    margin-bottom:16px;
+  }
+  .hint b{color:var(--text);font-weight:500;}
+
+  .viewfinder{
+    position:relative;
+    width:100%;
+    aspect-ratio:3/4;
+    background:#000;
+    border-radius:14px;
+    overflow:hidden;
+    border:1px solid var(--border);
+  }
+  .viewfinder video{
+    width:100%;height:100%;object-fit:cover;display:block;
+  }
+  .viewfinder .placeholder{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    color:var(--text-dim);font-size:13px;text-align:center;padding:0 30px;
+  }
+  .guide{
+    position:absolute;
+    top:50%;left:50%;
+    width:72%;
+    aspect-ratio:1/1;
+    transform:translate(-50%,-50%);
+    pointer-events:none;
+  }
+  .guide span{
+    position:absolute;width:22px;height:22px;
+    border:2px solid var(--accent);
+  }
+  .guide span.tl{top:0;left:0;border-right:none;border-bottom:none;border-top-left-radius:4px;}
+  .guide span.tr{top:0;right:0;border-left:none;border-bottom:none;border-top-right-radius:4px;}
+  .guide span.bl{bottom:0;left:0;border-right:none;border-top:none;border-bottom-left-radius:4px;}
+  .guide span.br{bottom:0;right:0;border-left:none;border-top:none;border-bottom-right-radius:4px;}
+
+  .capture-row{
+    display:flex;align-items:center;justify-content:center;
+    margin:22px 0 4px;
+    gap: 16px;
+  }
+  .shutter{
+    width:74px;height:74px;border-radius:50%;
+    background:var(--warm);
+    border:4px solid var(--warm-dim);
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .shutter:active{transform:scale(0.96);}
+  .shutter:disabled{opacity:0.4;cursor:not-allowed;}
+  .shutter svg{width:26px;height:26px;}
+
+  .btn-torch {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .btn-torch.active {
+    background: var(--warm);
+    color: #241a06;
+    border-color: var(--warm);
+  }
+  .btn-torch:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+  .btn-torch svg { width: 20px; height: 20px; }
+
+  .status{
+    text-align:center;font-size:12px;color:var(--text-dim);min-height:16px;margin-top:8px;
+  }
+
+  button.primary{
+    background:var(--warm);color:#241a06;border:none;border-radius:var(--radius);
+    font-size:14px;font-weight:500;padding:11px 16px;cursor:pointer;
+  }
+  button.ghost{
+    background:transparent;color:var(--text);border:1px solid var(--border);
+    border-radius:var(--radius);font-size:14px;font-weight:500;padding:11px 16px;cursor:pointer;
+  }
+  button.icon{
+    background:var(--surface-2);border:1px solid var(--border);border-radius:8px;
+    width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text);
+  }
+  button.icon svg{width:16px;height:16px;}
+  button:focus-visible, input:focus-visible, .shutter:focus-visible{
+    outline:2px solid var(--accent);outline-offset:2px;
+  }
+
+  #results{display:none;}
+  .source-row{
+    display:flex;gap:12px;align-items:center;margin-bottom:20px;
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px;
+  }
+  .source-row canvas{width:56px;height:56px;border-radius:6px;object-fit:cover;flex-shrink:0;}
+  .source-row .meta{font-size:12px;color:var(--text-dim);}
+  .source-row .meta b{color:var(--text);font-weight:500;display:block;font-size:13px;margin-bottom:2px;}
+
+  .grid{
+    display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;
+  }
+  .tile{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    overflow:hidden;
+  }
+  .tile canvas{width:100%;aspect-ratio:1/1;display:block;background:#000;}
+  .tile .tile-foot{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:8px 10px;
+  }
+  .tile .tile-foot .t-label{font-size:13px;font-weight:500;}
+  .tile .tile-foot .t-sub{font-size:11px;color:var(--text-dim);}
+
+  /* Visor 3D */
+  .viewer-3d-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 18px;
+  }
+  .viewer-3d-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .viewer-3d-header h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0;
+  }
+  .mesh-selector {
+    display: flex;
+    gap: 4px;
+    background: var(--surface-2);
+    padding: 3px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+  .mesh-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .mesh-btn.active {
+    background: var(--warm);
+    color: #241a06;
+  }
+  #canvas3d-container {
+    width: 100%;
+    aspect-ratio: 1/1;
+    position: relative;
+    background: #0d0e10;
+    touch-action: none;
+  }
+  #canvas3d-container canvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+  }
+
+  .actions{display:flex;gap:10px;margin-bottom:22px;}
+  .actions button{flex:1;}
+
+  details{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:4px 14px 14px;margin-bottom:16px;
+  }
+  details summary{
+    cursor:pointer;padding:12px 0;font-size:14px;font-weight:500;list-style:none;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  details summary::-webkit-details-marker{display:none;}
+  .control{margin-top:14px;}
+  .control label{
+    display:flex;justify-content:space-between;font-size:13px;color:var(--text-dim);margin-bottom:6px;
+  }
+  .control input[type=range]{
+    width:100%;accent-color:var(--accent);
+  }
+  .control.checkbox{display:flex;align-items:center;gap:8px;}
+  .control.checkbox label{margin:0;font-size:13px;color:var(--text);}
+
+  footer{margin-top:8px;font-size:12px;color:var(--text-dim);}
+  footer p{margin:0 0 6px;}
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;}
+  }
+</style>
 </head>
 <body>
-<p class="p1"><span class="s1">&lt;!DOCTYPE html&gt;</span></p>
-<p class="p1"><span class="s1">&lt;html lang="es"&gt;</span></p>
-<p class="p1"><span class="s1">&lt;head&gt;</span></p>
-<p class="p1"><span class="s1">&lt;meta charset="UTF-8"&gt;</span></p>
-<p class="p1"><span class="s1">&lt;meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"&gt;</span></p>
-<p class="p1"><span class="s1">&lt;meta name="apple-mobile-web-app-capable" content="yes"&gt;</span></p>
-<p class="p1"><span class="s1">&lt;meta name="mobile-web-app-capable" content="yes"&gt;</span></p>
-<p class="p1"><span class="s1">&lt;meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"&gt;</span></p>
-<p class="p1"><span class="s1">&lt;meta name="theme-color" content="#101012"&gt;</span></p>
-<p class="p1"><span class="s1">&lt;title&gt;Escáner de materiales PBR&lt;/title&gt;</span></p>
-<p class="p1"><span class="s1">&lt;link rel="preconnect" href="https://fonts.googleapis.com"&gt;</span></p>
-<p class="p1"><span class="s1">&lt;link rel="preconnect" href="https://fonts.gstatic.com" crossorigin&gt;</span></p>
-<p class="p1"><span class="s1">&lt;link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&amp;family=Inter:wght@400;500&amp;display=swap" rel="stylesheet"&gt;</span></p>
-<p class="p1"><span class="s1">&lt;style&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>:root{</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>--bg:#101012;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>--surface:#1a1b1e;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>--surface-2:#202226;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>--border:#2c2d31;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>--text:#ededed;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>--text-dim:#97979c;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>--accent:#7c83ff;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>--accent-dim:#3d3f7a;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>--warm:#e8a33d;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>--warm-dim:#5c471f;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>--danger:#e2574c;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>--radius:10px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>*{box-sizing:border-box;}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>html,body{margin:0;padding:0;}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>body{</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>background:var(--bg);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>color:var(--text);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>font-family:'Inter',system-ui,sans-serif;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>line-height:1.5;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>padding-top:env(safe-area-inset-top);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>padding-bottom:env(safe-area-inset-bottom);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>-webkit-tap-highlight-color:transparent;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>h1,h2,h3,.label,button{font-family:'Space Grotesk',system-ui,sans-serif;}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.app{max-width:480px;margin:0 auto;padding:20px 18px 48px;}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>header{margin-bottom:22px;}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>header h1{font-size:22px;font-weight:600;margin:0 0 4px;letter-spacing:-0.01em;}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>header p{font-size:14px;color:var(--text-dim);margin:0;max-width:38ch;}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.banner{</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>background:var(--surface-2);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>border:1px solid var(--danger);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>border-radius:var(--radius);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>padding:12px 14px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>font-size:13px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>color:var(--text);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>margin-bottom:18px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.banner strong{color:var(--danger);display:block;margin-bottom:2px;font-size:13px;}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.hint{</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>font-size:13px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>color:var(--text-dim);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>background:var(--surface);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>border:1px solid var(--border);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>border-radius:var(--radius);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>padding:12px 14px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>margin-bottom:16px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.hint b{color:var(--text);font-weight:500;}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.viewfinder{</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>position:relative;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>width:100%;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>aspect-ratio:3/4;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>background:#000;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>border-radius:14px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>overflow:hidden;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>border:1px solid var(--border);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.viewfinder video{</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>width:100%;height:100%;object-fit:cover;display:block;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.viewfinder .placeholder{</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>position:absolute;inset:0;display:flex;align-items:center;justify-content:center;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>color:var(--text-dim);font-size:13px;text-align:center;padding:0 30px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.guide{</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>position:absolute;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>top:50%;left:50%;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>width:72%;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>aspect-ratio:1/1;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>transform:translate(-50%,-50%);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>pointer-events:none;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.guide span{</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>position:absolute;width:22px;height:22px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>border:2px solid var(--accent);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.guide span.tl{top:0;left:0;border-right:none;border-bottom:none;border-top-left-radius:4px;}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.guide span.tr{top:0;right:0;border-left:none;border-bottom:none;border-top-right-radius:4px;}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.guide span.bl{bottom:0;left:0;border-right:none;border-top:none;border-bottom-left-radius:4px;}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.guide span.br{bottom:0;right:0;border-left:none;border-top:none;border-bottom-right-radius:4px;}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.capture-row{</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>display:flex;align-items:center;justify-content:center;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>margin:22px 0 4px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>gap: 16px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.shutter{</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>width:74px;height:74px;border-radius:50%;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>background:var(--warm);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>border:4px solid var(--warm-dim);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>cursor:pointer;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>display:flex;align-items:center;justify-content:center;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.shutter:active{transform:scale(0.96);}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.shutter:disabled{opacity:0.4;cursor:not-allowed;}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.shutter svg{width:26px;height:26px;}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.btn-torch {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>width: 48px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>height: 48px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>border-radius: 50%;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>background: var(--surface-2);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>border: 1px solid var(--border);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>color: var(--text-dim);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>display: flex;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>align-items: center;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>justify-content: center;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>cursor: pointer;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>transition: all 0.2s ease;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.btn-torch.active {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>background: var(--warm);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>color: #241a06;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>border-color: var(--warm);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.btn-torch:disabled {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>opacity: 0.3;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>cursor: not-allowed;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.btn-torch svg { width: 20px; height: 20px; }</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.status{</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>text-align:center;font-size:12px;color:var(--text-dim);min-height:16px;margin-top:8px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>button.primary{</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>background:var(--warm);color:#241a06;border:none;border-radius:var(--radius);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>font-size:14px;font-weight:500;padding:11px 16px;cursor:pointer;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>button.ghost{</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>background:transparent;color:var(--text);border:1px solid var(--border);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>border-radius:var(--radius);font-size:14px;font-weight:500;padding:11px 16px;cursor:pointer;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>button.icon{</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>background:var(--surface-2);border:1px solid var(--border);border-radius:8px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>button.icon svg{width:16px;height:16px;}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>button:focus-visible, input:focus-visible, .shutter:focus-visible{</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>outline:2px solid var(--accent);outline-offset:2px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>#results{display:none;}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.source-row{</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>display:flex;gap:12px;align-items:center;margin-bottom:20px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.source-row canvas{width:56px;height:56px;border-radius:6px;object-fit:cover;flex-shrink:0;}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.source-row .meta{font-size:12px;color:var(--text-dim);}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.source-row .meta b{color:var(--text);font-weight:500;display:block;font-size:13px;margin-bottom:2px;}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.grid{</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.tile{</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>overflow:hidden;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.tile canvas{width:100%;aspect-ratio:1/1;display:block;background:#000;}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.tile .tile-foot{</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>display:flex;align-items:center;justify-content:space-between;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>padding:8px 10px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.tile .tile-foot .t-label{font-size:13px;font-weight:500;}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.tile .tile-foot .t-sub{font-size:11px;color:var(--text-dim);}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>/* Visor 3D */</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.viewer-3d-card {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>background: var(--surface);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>border: 1px solid var(--border);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>border-radius: var(--radius);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>overflow: hidden;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>margin-bottom: 18px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.viewer-3d-header {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>display: flex;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>align-items: center;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>justify-content: space-between;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>padding: 10px 14px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>border-bottom: 1px solid var(--border);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.viewer-3d-header h3 {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>font-size: 14px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>font-weight: 600;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>margin: 0;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.mesh-selector {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>display: flex;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>gap: 4px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>background: var(--surface-2);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>padding: 3px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>border-radius: 6px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>border: 1px solid var(--border);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.mesh-btn {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>background: transparent;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>border: none;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>color: var(--text-dim);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>font-size: 11px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>font-weight: 500;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>padding: 4px 8px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>border-radius: 4px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>cursor: pointer;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.mesh-btn.active {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>background: var(--warm);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>color: #241a06;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>#canvas3d-container {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>width: 100%;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>aspect-ratio: 1/1;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>position: relative;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>background: #0d0e10;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>touch-action: none;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>#canvas3d-container canvas {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>width: 100% !important;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>height: 100% !important;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>display: block;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.actions{display:flex;gap:10px;margin-bottom:22px;}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.actions button{flex:1;}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>details{</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>padding:4px 14px 14px;margin-bottom:16px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>details summary{</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>cursor:pointer;padding:12px 0;font-size:14px;font-weight:500;list-style:none;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>display:flex;align-items:center;justify-content:space-between;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>details summary::-webkit-details-marker{display:none;}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.control{margin-top:14px;}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.control label{</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>display:flex;justify-content:space-between;font-size:13px;color:var(--text-dim);margin-bottom:6px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.control input[type=range]{</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>width:100%;accent-color:var(--accent);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.control.checkbox{display:flex;align-items:center;gap:8px;}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.control.checkbox label{margin:0;font-size:13px;color:var(--text);}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>footer{margin-top:8px;font-size:12px;color:var(--text-dim);}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>footer p{margin:0 0 6px;}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>@media (prefers-reduced-motion: reduce){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>*{transition:none !important;}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p1"><span class="s1">&lt;/style&gt;</span></p>
-<p class="p1"><span class="s1">&lt;/head&gt;</span></p>
-<p class="p1"><span class="s1">&lt;body&gt;</span></p>
-<p class="p1"><span class="s1">&lt;div class="app"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;header&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;h1&gt;Escáner de materiales&lt;/h1&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;p&gt;Captura una superficie y genera un set de texturas PBR: albedo, normal, roughness, AO y metallic.&lt;/p&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;/header&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;div id="secureBanner" class="banner" style="display:none;"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;strong&gt;Necesita HTTPS&lt;/strong&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>Esta página debe servirse por HTTPS (o localhost) para poder usar la cámara. Álojala en GitHub Pages, Netlify o Vercel.</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;div id="captureView"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="hint"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;b&gt;Antes de capturar:&lt;/b&gt; activa la linterna directamente con el botón de abajo y coloca el teléfono paralelo a la superficie, a unos 15–20&amp;nbsp;cm. Solo se procesará el recuadro central.</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="viewfinder"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;video id="video" autoplay playsinline muted&gt;&lt;/video&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div id="placeholder" class="placeholder"&gt;Toca «Activar cámara» para empezar&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div class="guide"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;span class="tl"&gt;&lt;/span&gt;&lt;span class="tr"&gt;&lt;/span&gt;&lt;span class="bl"&gt;&lt;/span&gt;&lt;span class="br"&gt;&lt;/span&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="capture-row"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;button id="torchBtn" class="btn-torch" disabled aria-label="Activar linterna" title="Linterna"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="currentColor"/&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/svg&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;/button&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;button id="shutterBtn" class="shutter" disabled aria-label="Capturar foto"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;svg viewBox="0 0 24 24" fill="none" stroke="#241a06" stroke-width="2"&gt;&lt;path d="M4 8h3l2-3h6l2 3h3v11H4z"/&gt;&lt;circle cx="12" cy="13.5" r="3.2"/&gt;&lt;/svg&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;/button&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="status" id="status"&gt;Cámara desactivada&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="capture-row" style="margin-top:14px;"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;button id="startCameraBtn" class="primary"&gt;Activar cámara&lt;/button&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;div id="results"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="source-row"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;canvas id="sourceCanvas"&gt;&lt;/canvas&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div class="meta"&gt;&lt;b&gt;Captura original&lt;/b&gt;&lt;span id="sourceMeta"&gt;&lt;/span&gt;&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;!-- Visor 3D Interactivo --&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="viewer-3d-card"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div class="viewer-3d-header"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;h3&gt;Vista Previa 3D&lt;/h3&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;div class="mesh-selector"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;button class="mesh-btn active" data-mesh="sphere"&gt;Esfera&lt;/button&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;button class="mesh-btn" data-mesh="cube"&gt;Cubo&lt;/button&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;button class="mesh-btn" data-mesh="plane"&gt;Plano&lt;/button&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div id="canvas3d-container"&gt;&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="grid"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div class="tile"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;canvas id="albedoCanvas"&gt;&lt;/canvas&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;div class="tile-foot"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;div&gt;&lt;div class="t-label"&gt;Albedo&lt;/div&gt;&lt;div class="t-sub" id="albedoMeta"&gt;PNG&lt;/div&gt;&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;button class="icon" data-download="albedo" aria-label="Descargar albedo"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"&gt;&lt;path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14"/&gt;&lt;/svg&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;/button&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div class="tile"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;canvas id="normalCanvas"&gt;&lt;/canvas&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;div class="tile-foot"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;div&gt;&lt;div class="t-label"&gt;Normal&lt;/div&gt;&lt;div class="t-sub" id="normalMeta"&gt;PNG&lt;/div&gt;&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;button class="icon" data-download="normal" aria-label="Descargar normal"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"&gt;&lt;path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14"/&gt;&lt;/svg&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;/button&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div class="tile"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;canvas id="roughnessCanvas"&gt;&lt;/canvas&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;div class="tile-foot"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;div&gt;&lt;div class="t-label"&gt;Roughness&lt;/div&gt;&lt;div class="t-sub" id="roughnessMeta"&gt;PNG&lt;/div&gt;&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;button class="icon" data-download="roughness" aria-label="Descargar roughness"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"&gt;&lt;path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14"/&gt;&lt;/svg&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;/button&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div class="tile"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;canvas id="aoCanvas"&gt;&lt;/canvas&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;div class="tile-foot"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;div&gt;&lt;div class="t-label"&gt;AO&lt;/div&gt;&lt;div class="t-sub" id="aoMeta"&gt;PNG&lt;/div&gt;&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;button class="icon" data-download="ao" aria-label="Descargar AO"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"&gt;&lt;path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14"/&gt;&lt;/svg&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;/button&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="tile" style="margin-bottom:18px;"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;canvas id="metallicCanvas" style="aspect-ratio:3/1;"&gt;&lt;/canvas&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div class="tile-foot"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;div&gt;&lt;div class="t-label"&gt;Metallic&lt;/div&gt;&lt;div class="t-sub"&gt;Valor constante · PNG&lt;/div&gt;&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;button class="icon" data-download="metallic" aria-label="Descargar metallic"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"&gt;&lt;path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14"/&gt;&lt;/svg&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/button&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;details&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;summary&gt;Ajustes avanzados&lt;/summary&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div class="control"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;label&gt;&lt;span&gt;Intensidad del normal map&lt;/span&gt;&lt;span id="normalStrengthVal"&gt;2.5&lt;/span&gt;&lt;/label&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;input type="range" id="normalStrength" min="0.5" max="6" step="0.1" value="2.5"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div class="control"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;label&gt;&lt;span&gt;Intensidad de desplazamiento (Height 3D)&lt;/span&gt;&lt;span id="dispVal"&gt;0.05&lt;/span&gt;&lt;/label&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;input type="range" id="dispSlider" min="0" max="0.2" step="0.005" value="0.05"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div class="control"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;label&gt;&lt;span&gt;Intensidad de oclusión (AO)&lt;/span&gt;&lt;span id="aoStrengthVal"&gt;3.0&lt;/span&gt;&lt;/label&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;input type="range" id="aoStrength" min="0.5" max="8" step="0.1" value="3.0"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div class="control"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;label&gt;&lt;span&gt;Metallic constante&lt;/span&gt;&lt;span id="metallicVal"&gt;0.0&lt;/span&gt;&lt;/label&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;input type="range" id="metallicSlider" min="0" max="1" step="0.05" value="0"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div class="control checkbox"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;input type="checkbox" id="roughnessInvert"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;label for="roughnessInvert"&gt;Invertir roughness&lt;/label&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/details&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="actions"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;button id="downloadAllBtn" class="primary"&gt;Descargar todo (.zip)&lt;/button&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;button id="retakeBtn" class="ghost"&gt;Escanear otro&lt;/button&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;footer&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;p&gt;Los mapas de roughness y AO son estimaciones heurísticas a partir del sombreado de una sola foto. El metallic se define manualmente.&lt;/p&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;p&gt;Todo el procesado ocurre en tu teléfono; ninguna imagen sale del navegador.&lt;/p&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;/footer&gt;</span></p>
-<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">&lt;!-- Librerías Externas --&gt;</span></p>
-<p class="p1"><span class="s1">&lt;script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"&gt;&lt;/script&gt;</span></p>
-<p class="p1"><span class="s1">&lt;script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"&gt;&lt;/script&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">&lt;script&gt;</span></p>
-<p class="p1"><span class="s1">(function(){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>"use strict";</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>// Check SSL</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var isSecure = window.isSecureContext || location.hostname === 'localhost';</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>if (!isSecure) document.getElementById('secureBanner').style.display = 'block';</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>// DOM refs</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var video = document.getElementById('video');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var placeholder = document.getElementById('placeholder');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var shutterBtn = document.getElementById('shutterBtn');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var torchBtn = document.getElementById('torchBtn');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var startCameraBtn = document.getElementById('startCameraBtn');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var statusEl = document.getElementById('status');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var captureView = document.getElementById('captureView');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var resultsView = document.getElementById('results');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var retakeBtn = document.getElementById('retakeBtn');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var downloadAllBtn = document.getElementById('downloadAllBtn');</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var sourceCanvas = document.getElementById('sourceCanvas');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var sourceMeta = document.getElementById('sourceMeta');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var albedoCanvas = document.getElementById('albedoCanvas');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var normalCanvas = document.getElementById('normalCanvas');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var roughnessCanvas = document.getElementById('roughnessCanvas');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var aoCanvas = document.getElementById('aoCanvas');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var metallicCanvas = document.getElementById('metallicCanvas');</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var normalStrengthInput = document.getElementById('normalStrength');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var normalStrengthVal = document.getElementById('normalStrengthVal');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var aoStrengthInput = document.getElementById('aoStrength');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var aoStrengthVal = document.getElementById('aoStrengthVal');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var metallicInput = document.getElementById('metallicSlider');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var metallicVal = document.getElementById('metallicVal');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var roughnessInvertInput = document.getElementById('roughnessInvert');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var dispInput = document.getElementById('dispSlider');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var dispVal = document.getElementById('dispVal');</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var stream = null;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var track = null;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var isTorchOn = false;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var cachedImageData = null;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var cachedL = null;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var cachedW = 0, cachedH = 0;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>// ---------- Engine 3D (Three.js) ----------</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var scene, camera, renderer, mesh, material3D;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var textures3D = {};</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>var is3DInitialized = false;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>function init3DViewer() {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var container = document.getElementById('canvas3d-container');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var w = container.clientWidth;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var h = container.clientHeight || w;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>scene = new THREE.Scene();</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>scene.background = new THREE.Color(0x0d0e10);</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>camera.position.set(0, 0, 3.2);</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>renderer = new THREE.WebGLRenderer({ antialias: true });</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>renderer.setSize(w, h);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>container.appendChild(renderer.domElement);</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>// Luces</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var ambientLight = new THREE.AmbientLight(0xffffff, 0.7);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>scene.add(ambientLight);</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var dirLight1 = new THREE.DirectionalLight(0xffffff, 1.2);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>dirLight1.position.set(2, 3, 2);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>scene.add(dirLight1);</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var dirLight2 = new THREE.DirectionalLight(0x7c83ff, 0.4);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>dirLight2.position.set(-2, -1, -2);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>scene.add(dirLight2);</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>// Material</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>material3D = new THREE.MeshStandardMaterial({</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>roughness: 0.5,</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>metalness: 0.0</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>});</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>// Malla inicial (Esfera)</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var geometry = new THREE.SphereGeometry(1, 64, 64);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>mesh = new THREE.Mesh(geometry, material3D);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>scene.add(mesh);</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>// Control táctil de rotación</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var isDragging = false;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var previousMousePosition = { x: 0, y: 0 };</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>function onPointerDown(e) {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>isDragging = true;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>previousMousePosition = { x: e.clientX || e.touches[0].clientX, y: e.clientY || e.touches[0].clientY };</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>function onPointerMove(e) {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>if (!isDragging) return;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>var clientX = e.clientX || (e.touches &amp;&amp; e.touches[0].clientX);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>var clientY = e.clientY || (e.touches &amp;&amp; e.touches[0].clientY);</span></p>
-<p class="p2"><span class="s1"><span class="Apple-converted-space">      </span></span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>var deltaX = clientX - previousMousePosition.x;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>var deltaY = clientY - previousMousePosition.y;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>mesh.rotation.y += deltaX * 0.008;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>mesh.rotation.x += deltaY * 0.008;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>previousMousePosition = { x: clientX, y: clientY };</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>function onPointerUp() { isDragging = false; }</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>container.addEventListener('pointerdown', onPointerDown);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>container.addEventListener('pointermove', onPointerMove);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>window.addEventListener('pointerup', onPointerUp);</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>// Render loop</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>function animate() {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>requestAnimationFrame(animate);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>if (!isDragging) {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>mesh.rotation.y += 0.003; // Rotación automática suave</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>renderer.render(scene, camera);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>animate();</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>// Eventos selector de malla</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>document.querySelectorAll('.mesh-btn').forEach(function(btn){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>btn.addEventListener('click', function(){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>document.querySelectorAll('.mesh-btn').forEach(b =&gt; b.classList.remove('active'));</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>btn.classList.add('active');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>changeMeshGeometry(btn.getAttribute('data-mesh'));</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>});</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>});</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>is3DInitialized = true;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>function changeMeshGeometry(type) {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>if (!mesh) return;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>mesh.geometry.dispose();</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>if (type === 'sphere') {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>mesh.geometry = new THREE.SphereGeometry(1, 64, 64);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>} else if (type === 'cube') {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>mesh.geometry = new THREE.BoxGeometry(1.5, 1.5, 1.5, 64, 64, 64);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>} else if (type === 'plane') {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>mesh.geometry = new THREE.PlaneGeometry(2, 2, 64, 64);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>function update3DTextures() {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>if (!is3DInitialized) init3DViewer();</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>// Actualiza mapas desde Canvas</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>['map', 'normalMap', 'roughnessMap', 'aoMap', 'displacementMap'].forEach(key =&gt; {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>if (textures3D[key]) textures3D[key].dispose();</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>});</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>textures3D.map = new THREE.CanvasTexture(albedoCanvas);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>textures3D.normalMap = new THREE.CanvasTexture(normalCanvas);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>textures3D.roughnessMap = new THREE.CanvasTexture(roughnessCanvas);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>textures3D.aoMap = new THREE.CanvasTexture(aoCanvas);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>textures3D.displacementMap = new THREE.CanvasTexture(roughnessCanvas); // Usa el mapa de relieve como mapa de desplazamiento</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>material3D.map = textures3D.map;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>material3D.normalMap = textures3D.normalMap;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>material3D.roughnessMap = textures3D.roughnessMap;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>material3D.aoMap = textures3D.aoMap;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>material3D.displacementMap = textures3D.displacementMap;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>material3D.displacementScale = parseFloat(dispInput.value);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>material3D.metalness = parseFloat(metallicInput.value);</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>material3D.needsUpdate = true;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>// ---------- Camera &amp; Torch ----------</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>async function startCamera() {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>statusEl.textContent = 'Este navegador no soporta acceso a la cámara.';</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>return;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>try {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>statusEl.textContent = 'Solicitando acceso a la cámara…';</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>stream = await navigator.mediaDevices.getUserMedia({</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1920 } },</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>audio: false</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>});</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>video.srcObject = stream;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>await video.play();</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>track = stream.getVideoTracks()[0];</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>checkTorchSupport();</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>placeholder.style.display = 'none';</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>shutterBtn.disabled = false;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>statusEl.textContent = 'Cámara lista';</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>} catch (err) {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>console.error(err);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>statusEl.textContent = 'No se pudo acceder a la cámara. Revisa los permisos del navegador.';</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>function checkTorchSupport() {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>if (!track) return;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const capabilities = track.getCapabilities ? track.getCapabilities() : {};</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>torchBtn.disabled = !capabilities.torch;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>async function toggleTorch() {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>if (!track) return;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>try {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>isTorchOn = !isTorchOn;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>await track.applyConstraints({ advanced: [{ torch: isTorchOn }] });</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>torchBtn.classList.toggle('active', isTorchOn);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>} catch (err) {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>isTorchOn = false;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>torchBtn.classList.remove('active');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>function stopCamera() {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>if (stream) {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>if (isTorchOn &amp;&amp; track) {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>track.applyConstraints({ advanced: [{ torch: false }] }).catch(() =&gt; {});</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>isTorchOn = false;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>torchBtn.classList.remove('active');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>stream.getTracks().forEach(t =&gt; t.stop());</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>stream = null; track = null; torchBtn.disabled = true;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>// ---------- Math helpers ----------</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>function clampVal(v){ return v &lt; 0 ? 0 : (v &gt; 255 ? 255 : v); }</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>function clampIndex(i, n){ return i &lt; 0 ? 0 : (i &gt;= n ? n - 1 : i); }</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>function boxBlurH(src, w, h, radius){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var out = new Float32Array(w*h);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var windowSize = radius*2+1;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>for (var y=0; y&lt;h; y++){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>var rowStart = y*w, sum = 0;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>for (var k=-radius; k&lt;=radius; k++) sum += src[rowStart + clampIndex(k, w)];</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>for (var x=0; x&lt;w; x++){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>out[rowStart+x] = sum / windowSize;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>sum += src[rowStart+clampIndex(x+radius+1, w)] - src[rowStart+clampIndex(x-radius, w)];</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>return out;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>function boxBlurV(src, w, h, radius){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var out = new Float32Array(w*h);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var windowSize = radius*2+1;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>for (var x=0; x&lt;w; x++){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>var sum = 0;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>for (var k=-radius; k&lt;=radius; k++) sum += src[clampIndex(k, h)*w + x];</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>for (var y=0; y&lt;h; y++){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>out[y*w+x] = sum / windowSize;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>sum += src[clampIndex(y+radius+1, h)*w+x] - src[clampIndex(y-radius, h)*w+x];</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>return out;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>function boxBlur(src, w, h, radius){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>if (radius &lt; 1) return src.slice();</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>return boxBlurV(boxBlurH(src, w, h, radius), w, h, radius);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>function computeLuminance(imageData){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var data = imageData.data;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var L = new Float32Array(imageData.width * imageData.height);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>for (var i=0, p=0; i&lt;data.length; i+=4, p++){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>L[p] = (0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2]) / 255;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>return L;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>// ---------- Map generators ----------</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>function computeAlbedo(imageData, lowFreq, w, h){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var data = imageData.data, out = new ImageData(w, h), od = out.data, meanLow = 0;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>for (var i=0; i&lt;lowFreq.length; i++) meanLow += lowFreq[i];</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>meanLow /= lowFreq.length;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>for (var p=0, j=0; p&lt;w*h; p++, j+=4){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>var factor = Math.min(Math.max(meanLow / Math.max(lowFreq[p], 0.02), 0.35), 2.8);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>od[j] <span class="Apple-converted-space">  </span>= clampVal(data[j] <span class="Apple-converted-space">  </span>* factor);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>od[j+1] = clampVal(data[j+1] * factor);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>od[j+2] = clampVal(data[j+2] * factor);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>od[j+3] = 255;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>return out;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>function computeNormal(Lsmooth, w, h, strength){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var out = new ImageData(w, h), od = out.data;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>for (var y=0; y&lt;h; y++){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>for (var x=0; x&lt;w; x++){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>var xm = clampIndex(x-1, w), xp = clampIndex(x+1, w);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>var ym = clampIndex(y-1, h), yp = clampIndex(y+1, h);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>var gx = (Lsmooth[y*w+xp] - Lsmooth[y*w+xm]) * 0.5;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>var gy = (Lsmooth[yp*w+x] - Lsmooth[ym*w+x]) * 0.5;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>var nx = -gx * strength, ny = -gy * strength, nz = 1;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>var len = Math.sqrt(nx*nx + ny*ny + nz*nz) || 1;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>var idx = (y*w+x)*4;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>od[idx] <span class="Apple-converted-space">  </span>= clampVal(((nx/len)*0.5+0.5)*255);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>od[idx+1] = clampVal(((ny/len)*0.5+0.5)*255);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>od[idx+2] = clampVal(((nz/len)*0.5+0.5)*255);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>od[idx+3] = 255;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>return out;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>function computeRoughness(L, w, h, invert){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var radius = 3, L2 = new Float32Array(L.length);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>for (var i=0; i&lt;L.length; i++) L2[i] = L[i]*L[i];</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var meanL = boxBlur(L, w, h, radius), meanL2 = boxBlur(L2, w, h, radius);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var std = new Float32Array(L.length), maxStd = 1e-5;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>for (i=0; i&lt;L.length; i++){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>var v = Math.max(0, meanL2[i] - meanL[i]*meanL[i]);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>std[i] = Math.sqrt(v);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>if (std[i] &gt; maxStd) maxStd = std[i];</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var out = new ImageData(w, h), od = out.data;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>for (var p=0, j=0; p&lt;w*h; p++, j+=4){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>var val = std[p] / maxStd;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>if (invert) val = 1 - val;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>var g = clampVal(val*255);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>od[j]=g; od[j+1]=g; od[j+2]=g; od[j+3]=255;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>return out;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>function computeAO(L, w, h, strength){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var local = boxBlur(L, w, h, 4), out = new ImageData(w, h), od = out.data;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>for (var p=0, j=0; p&lt;w*h; p++, j+=4){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>var occlusion = Math.max(0, local[p]-L[p]) * strength;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>var g = clampVal(Math.min(1, Math.max(0, 1-occlusion))*255);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>od[j]=g; od[j+1]=g; od[j+2]=g; od[j+3]=255;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>return out;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>function computeMetallic(w, h, value){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var out = new ImageData(w, h), od = out.data, g = clampVal(value*255);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>for (var i=0; i&lt;od.length; i+=4){ od[i]=g; od[i+1]=g; od[i+2]=g; od[i+3]=255; }</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>return out;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>function drawToCanvas(canvas, imageData){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>canvas.width = imageData.width; canvas.height = imageData.height;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>canvas.getContext('2d').putImageData(imageData, 0, 0);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>// ---------- Pipeline ----------</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>function runPipeline(){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>if (!cachedImageData) return;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var w = cachedW, h = cachedH;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var Lsmooth = boxBlur(cachedL, w, h, 1);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var lowFreqBig = boxBlur(cachedL, w, h, Math.max(8, Math.round(Math.min(w, h) * 0.15)));</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>drawToCanvas(albedoCanvas, computeAlbedo(cachedImageData, lowFreqBig, w, h));</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>drawToCanvas(normalCanvas, computeNormal(Lsmooth, w, h, parseFloat(normalStrengthInput.value)));</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>drawToCanvas(roughnessCanvas, computeRoughness(cachedL, w, h, roughnessInvertInput.checked));</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>drawToCanvas(aoCanvas, computeAO(cachedL, w, h, parseFloat(aoStrengthInput.value)));</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>drawToCanvas(metallicCanvas, computeMetallic(w, h, parseFloat(metallicInput.value)));</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var metaTxt = w + '×' + h + ' · PNG';</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>document.getElementById('albedoMeta').textContent = metaTxt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>document.getElementById('normalMeta').textContent = metaTxt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>document.getElementById('roughnessMeta').textContent = metaTxt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>document.getElementById('aoMeta').textContent = metaTxt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>update3DTextures();</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>function capturePhoto(){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>if (!stream) return;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var vw = video.videoWidth, vh = video.videoHeight;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>if (!vw || !vh) return;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var cropSize = Math.min(vw, vh);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var sx = (vw - cropSize) / 2, sy = (vh - cropSize) / 2;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var outSize = Math.min(1024, cropSize);</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var tmp = document.createElement('canvas');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>tmp.width = outSize; tmp.height = outSize;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var ctx = tmp.getContext('2d');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.drawImage(video, sx, sy, cropSize, cropSize, 0, 0, outSize, outSize);</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>cachedImageData = ctx.getImageData(0, 0, outSize, outSize);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>cachedW = outSize; cachedH = outSize;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>cachedL = computeLuminance(cachedImageData);</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>drawToCanvas(sourceCanvas, cachedImageData);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>sourceMeta.textContent = outSize + '×' + outSize + ' px';</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>runPipeline();</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>showResults();</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>function showResults(){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>stopCamera();</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>captureView.style.display = 'none';</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>resultsView.style.display = 'block';</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>function showCapture(){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>resultsView.style.display = 'none';</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>captureView.style.display = 'block';</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>placeholder.style.display = 'flex';</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>placeholder.textContent = 'Toca «Activar cámara» para empezar';</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>shutterBtn.disabled = true; torchBtn.disabled = true;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>statusEl.textContent = 'Cámara desactivada';</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>startCamera();</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>// ---------- Downloads ----------</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>function canvasByKey(key){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>return { albedo: albedoCanvas, normal: normalCanvas, roughness: roughnessCanvas,</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>ao: aoCanvas, metallic: metallicCanvas }[key];</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>function downloadCanvas(canvas, filename){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>canvas.toBlob(function(blob){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>var url = URL.createObjectURL(blob);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>var a = document.createElement('a');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>a.href = url; a.download = filename;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>document.body.appendChild(a); a.click(); a.remove();</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>URL.revokeObjectURL(url);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}, 'image/png');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>async function downloadAll(){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var zip = new JSZip();</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var items = [</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>[albedoCanvas, 'albedo.png'], [normalCanvas, 'normal.png'],</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>[roughnessCanvas, 'roughness.png'], [aoCanvas, 'ao.png'],</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>[metallicCanvas, 'metallic.png']</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>];</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>for (var i=0; i&lt;items.length; i++){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>var canvas = items[i][0], name = items[i][1];</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>var blob = await new Promise(resolve =&gt; canvas.toBlob(resolve, 'image/png'));</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>zip.file(name, blob);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var content = await zip.generateAsync({ type: 'blob' });</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var url = URL.createObjectURL(content);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>var a = document.createElement('a');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>a.href = url; a.download = 'material-pbr.zip';</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>document.body.appendChild(a); a.click(); a.remove();</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>URL.revokeObjectURL(url);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>// ---------- Events ----------</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>startCameraBtn.addEventListener('click', startCamera);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>shutterBtn.addEventListener('click', capturePhoto);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>torchBtn.addEventListener('click', toggleTorch);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>retakeBtn.addEventListener('click', showCapture);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>downloadAllBtn.addEventListener('click', downloadAll);</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>document.querySelectorAll('[data-download]').forEach(function(btn){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>btn.addEventListener('click', function(){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>var key = btn.getAttribute('data-download');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>downloadCanvas(canvasByKey(key), key + '.png');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>});</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>});</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>[normalStrengthInput, aoStrengthInput, metallicInput, roughnessInvertInput, dispInput].forEach(function(el){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>el.addEventListener('input', function(){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>normalStrengthVal.textContent = parseFloat(normalStrengthInput.value).toFixed(1);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>aoStrengthVal.textContent = parseFloat(aoStrengthInput.value).toFixed(1);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>metallicVal.textContent = parseFloat(metallicInput.value).toFixed(2);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>dispVal.textContent = parseFloat(dispInput.value).toFixed(3);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>runPipeline();</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>});</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>});</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">})();</span></p>
-<p class="p1"><span class="s1">&lt;/script&gt;</span></p>
-<p class="p1"><span class="s1">&lt;/body&gt;</span></p>
-<p class="p1"><span class="s1">&lt;/html&gt;</span></p>
+<div class="app">
+  <header>
+    <h1>Escáner de materiales</h1>
+    <p>Captura una superficie y genera un set de texturas PBR: albedo, normal, roughness, AO y metallic.</p>
+  </header>
+
+  <div id="secureBanner" class="banner" style="display:none;">
+    <strong>Necesita HTTPS</strong>
+    Esta página debe servirse por HTTPS (o localhost) para poder usar la cámara. Álojala en GitHub Pages, Netlify o Vercel.
+  </div>
+
+  <div id="captureView">
+    <div class="hint">
+      <b>Antes de capturar:</b> activa la linterna directamente con el botón de abajo y coloca el teléfono paralelo a la superficie, a unos 15–20&nbsp;cm. Solo se procesará el recuadro central.
+    </div>
+
+    <div class="viewfinder">
+      <video id="video" autoplay playsinline muted></video>
+      <div id="placeholder" class="placeholder">Toca «Activar cámara» para empezar</div>
+      <div class="guide">
+        <span class="tl"></span><span class="tr"></span><span class="bl"></span><span class="br"></span>
+      </div>
+    </div>
+
+    <div class="capture-row">
+      <button id="torchBtn" class="btn-torch" disabled aria-label="Activar linterna" title="Linterna">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="currentColor"/>
+        </svg>
+      </button>
+
+      <button id="shutterBtn" class="shutter" disabled aria-label="Capturar foto">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#241a06" stroke-width="2"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13.5" r="3.2"/></svg>
+      </button>
+    </div>
+    <div class="status" id="status">Cámara desactivada</div>
+
+    <div class="capture-row" style="margin-top:14px;">
+      <button id="startCameraBtn" class="primary">Activar cámara</button>
+    </div>
+  </div>
+
+  <div id="results">
+    <div class="source-row">
+      <canvas id="sourceCanvas"></canvas>
+      <div class="meta"><b>Captura original</b><span id="sourceMeta"></span></div>
+    </div>
+
+    <!-- Visor 3D Interactivo -->
+    <div class="viewer-3d-card">
+      <div class="viewer-3d-header">
+        <h3>Vista Previa 3D</h3>
+        <div class="mesh-selector">
+          <button class="mesh-btn active" data-mesh="sphere">Esfera</button>
+          <button class="mesh-btn" data-mesh="cube">Cubo</button>
+          <button class="mesh-btn" data-mesh="plane">Plano</button>
+        </div>
+      </div>
+      <div id="canvas3d-container"></div>
+    </div>
+
+    <div class="grid">
+      <div class="tile">
+        <canvas id="albedoCanvas"></canvas>
+        <div class="tile-foot">
+          <div><div class="t-label">Albedo</div><div class="t-sub" id="albedoMeta">PNG</div></div>
+          <button class="icon" data-download="albedo" aria-label="Descargar albedo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="tile">
+        <canvas id="normalCanvas"></canvas>
+        <div class="tile-foot">
+          <div><div class="t-label">Normal</div><div class="t-sub" id="normalMeta">PNG</div></div>
+          <button class="icon" data-download="normal" aria-label="Descargar normal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="tile">
+        <canvas id="roughnessCanvas"></canvas>
+        <div class="tile-foot">
+          <div><div class="t-label">Roughness</div><div class="t-sub" id="roughnessMeta">PNG</div></div>
+          <button class="icon" data-download="roughness" aria-label="Descargar roughness">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="tile">
+        <canvas id="aoCanvas"></canvas>
+        <div class="tile-foot">
+          <div><div class="t-label">AO</div><div class="t-sub" id="aoMeta">PNG</div></div>
+          <button class="icon" data-download="ao" aria-label="Descargar AO">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="tile" style="margin-bottom:18px;">
+      <canvas id="metallicCanvas" style="aspect-ratio:3/1;"></canvas>
+      <div class="tile-foot">
+        <div><div class="t-label">Metallic</div><div class="t-sub">Valor constante · PNG</div></div>
+        <button class="icon" data-download="metallic" aria-label="Descargar metallic">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <details>
+      <summary>Ajustes avanzados</summary>
+      <div class="control">
+        <label><span>Intensidad del normal map</span><span id="normalStrengthVal">2.5</span></label>
+        <input type="range" id="normalStrength" min="0.5" max="6" step="0.1" value="2.5">
+      </div>
+      <div class="control">
+        <label><span>Intensidad de desplazamiento (Height 3D)</span><span id="dispVal">0.05</span></label>
+        <input type="range" id="dispSlider" min="0" max="0.2" step="0.005" value="0.05">
+      </div>
+      <div class="control">
+        <label><span>Intensidad de oclusión (AO)</span><span id="aoStrengthVal">3.0</span></label>
+        <input type="range" id="aoStrength" min="0.5" max="8" step="0.1" value="3.0">
+      </div>
+      <div class="control">
+        <label><span>Metallic constante</span><span id="metallicVal">0.0</span></label>
+        <input type="range" id="metallicSlider" min="0" max="1" step="0.05" value="0">
+      </div>
+      <div class="control checkbox">
+        <input type="checkbox" id="roughnessInvert">
+        <label for="roughnessInvert">Invertir roughness</label>
+      </div>
+    </details>
+
+    <div class="actions">
+      <button id="downloadAllBtn" class="primary">Descargar todo (.zip)</button>
+      <button id="retakeBtn" class="ghost">Escanear otro</button>
+    </div>
+  </div>
+
+  <footer>
+    <p>Los mapas de roughness y AO son estimaciones heurísticas a partir del sombreado de una sola foto. El metallic se define manualmente.</p>
+    <p>Todo el procesado ocurre en tu teléfono; ninguna imagen sale del navegador.</p>
+  </footer>
+</div>
+
+<!-- Librerías Externas -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<script>
+(function(){
+  "use strict";
+
+  // Check SSL
+  var isSecure = window.isSecureContext || location.hostname === 'localhost';
+  if (!isSecure) document.getElementById('secureBanner').style.display = 'block';
+
+  // DOM refs
+  var video = document.getElementById('video');
+  var placeholder = document.getElementById('placeholder');
+  var shutterBtn = document.getElementById('shutterBtn');
+  var torchBtn = document.getElementById('torchBtn');
+  var startCameraBtn = document.getElementById('startCameraBtn');
+  var statusEl = document.getElementById('status');
+  var captureView = document.getElementById('captureView');
+  var resultsView = document.getElementById('results');
+  var retakeBtn = document.getElementById('retakeBtn');
+  var downloadAllBtn = document.getElementById('downloadAllBtn');
+
+  var sourceCanvas = document.getElementById('sourceCanvas');
+  var sourceMeta = document.getElementById('sourceMeta');
+  var albedoCanvas = document.getElementById('albedoCanvas');
+  var normalCanvas = document.getElementById('normalCanvas');
+  var roughnessCanvas = document.getElementById('roughnessCanvas');
+  var aoCanvas = document.getElementById('aoCanvas');
+  var metallicCanvas = document.getElementById('metallicCanvas');
+
+  var normalStrengthInput = document.getElementById('normalStrength');
+  var normalStrengthVal = document.getElementById('normalStrengthVal');
+  var aoStrengthInput = document.getElementById('aoStrength');
+  var aoStrengthVal = document.getElementById('aoStrengthVal');
+  var metallicInput = document.getElementById('metallicSlider');
+  var metallicVal = document.getElementById('metallicVal');
+  var roughnessInvertInput = document.getElementById('roughnessInvert');
+  var dispInput = document.getElementById('dispSlider');
+  var dispVal = document.getElementById('dispVal');
+
+  var stream = null;
+  var track = null;
+  var isTorchOn = false;
+  var cachedImageData = null;
+  var cachedL = null;
+  var cachedW = 0, cachedH = 0;
+
+  // ---------- Engine 3D (Three.js) ----------
+  var scene, camera, renderer, mesh, material3D;
+  var textures3D = {};
+  var is3DInitialized = false;
+
+  function init3DViewer() {
+    var container = document.getElementById('canvas3d-container');
+    var w = container.clientWidth;
+    var h = container.clientHeight || w;
+
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0d0e10);
+
+    camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
+    camera.position.set(0, 0, 3.2);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(w, h);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    container.appendChild(renderer.domElement);
+
+    // Luces
+    var ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+    scene.add(ambientLight);
+
+    var dirLight1 = new THREE.DirectionalLight(0xffffff, 1.2);
+    dirLight1.position.set(2, 3, 2);
+    scene.add(dirLight1);
+
+    var dirLight2 = new THREE.DirectionalLight(0x7c83ff, 0.4);
+    dirLight2.position.set(-2, -1, -2);
+    scene.add(dirLight2);
+
+    // Material
+    material3D = new THREE.MeshStandardMaterial({
+      roughness: 0.5,
+      metalness: 0.0
+    });
+
+    // Malla inicial (Esfera)
+    var geometry = new THREE.SphereGeometry(1, 64, 64);
+    mesh = new THREE.Mesh(geometry, material3D);
+    scene.add(mesh);
+
+    // Control táctil de rotación
+    var isDragging = false;
+    var previousMousePosition = { x: 0, y: 0 };
+
+    function onPointerDown(e) {
+      isDragging = true;
+      previousMousePosition = { x: e.clientX || e.touches[0].clientX, y: e.clientY || e.touches[0].clientY };
+    }
+
+    function onPointerMove(e) {
+      if (!isDragging) return;
+      var clientX = e.clientX || (e.touches && e.touches[0].clientX);
+      var clientY = e.clientY || (e.touches && e.touches[0].clientY);
+      
+      var deltaX = clientX - previousMousePosition.x;
+      var deltaY = clientY - previousMousePosition.y;
+
+      mesh.rotation.y += deltaX * 0.008;
+      mesh.rotation.x += deltaY * 0.008;
+
+      previousMousePosition = { x: clientX, y: clientY };
+    }
+
+    function onPointerUp() { isDragging = false; }
+
+    container.addEventListener('pointerdown', onPointerDown);
+    container.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+
+    // Render loop
+    function animate() {
+      requestAnimationFrame(animate);
+      if (!isDragging) {
+        mesh.rotation.y += 0.003; // Rotación automática suave
+      }
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    // Eventos selector de malla
+    document.querySelectorAll('.mesh-btn').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        document.querySelectorAll('.mesh-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        changeMeshGeometry(btn.getAttribute('data-mesh'));
+      });
+    });
+
+    is3DInitialized = true;
+  }
+
+  function changeMeshGeometry(type) {
+    if (!mesh) return;
+    mesh.geometry.dispose();
+
+    if (type === 'sphere') {
+      mesh.geometry = new THREE.SphereGeometry(1, 64, 64);
+    } else if (type === 'cube') {
+      mesh.geometry = new THREE.BoxGeometry(1.5, 1.5, 1.5, 64, 64, 64);
+    } else if (type === 'plane') {
+      mesh.geometry = new THREE.PlaneGeometry(2, 2, 64, 64);
+    }
+  }
+
+  function update3DTextures() {
+    if (!is3DInitialized) init3DViewer();
+
+    // Actualiza mapas desde Canvas
+    ['map', 'normalMap', 'roughnessMap', 'aoMap', 'displacementMap'].forEach(key => {
+      if (textures3D[key]) textures3D[key].dispose();
+    });
+
+    textures3D.map = new THREE.CanvasTexture(albedoCanvas);
+    textures3D.normalMap = new THREE.CanvasTexture(normalCanvas);
+    textures3D.roughnessMap = new THREE.CanvasTexture(roughnessCanvas);
+    textures3D.aoMap = new THREE.CanvasTexture(aoCanvas);
+    textures3D.displacementMap = new THREE.CanvasTexture(roughnessCanvas); // Usa el mapa de relieve como mapa de desplazamiento
+
+    material3D.map = textures3D.map;
+    material3D.normalMap = textures3D.normalMap;
+    material3D.roughnessMap = textures3D.roughnessMap;
+    material3D.aoMap = textures3D.aoMap;
+    material3D.displacementMap = textures3D.displacementMap;
+
+    material3D.displacementScale = parseFloat(dispInput.value);
+    material3D.metalness = parseFloat(metallicInput.value);
+
+    material3D.needsUpdate = true;
+  }
+
+  // ---------- Camera & Torch ----------
+  async function startCamera() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      statusEl.textContent = 'Este navegador no soporta acceso a la cámara.';
+      return;
+    }
+    try {
+      statusEl.textContent = 'Solicitando acceso a la cámara…';
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1920 } },
+        audio: false
+      });
+      video.srcObject = stream;
+      await video.play();
+      track = stream.getVideoTracks()[0];
+      checkTorchSupport();
+      placeholder.style.display = 'none';
+      shutterBtn.disabled = false;
+      statusEl.textContent = 'Cámara lista';
+    } catch (err) {
+      console.error(err);
+      statusEl.textContent = 'No se pudo acceder a la cámara. Revisa los permisos del navegador.';
+    }
+  }
+
+  function checkTorchSupport() {
+    if (!track) return;
+    const capabilities = track.getCapabilities ? track.getCapabilities() : {};
+    torchBtn.disabled = !capabilities.torch;
+  }
+
+  async function toggleTorch() {
+    if (!track) return;
+    try {
+      isTorchOn = !isTorchOn;
+      await track.applyConstraints({ advanced: [{ torch: isTorchOn }] });
+      torchBtn.classList.toggle('active', isTorchOn);
+    } catch (err) {
+      isTorchOn = false;
+      torchBtn.classList.remove('active');
+    }
+  }
+
+  function stopCamera() {
+    if (stream) {
+      if (isTorchOn && track) {
+        track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
+        isTorchOn = false;
+        torchBtn.classList.remove('active');
+      }
+      stream.getTracks().forEach(t => t.stop());
+      stream = null; track = null; torchBtn.disabled = true;
+    }
+  }
+
+  // ---------- Math helpers ----------
+  function clampVal(v){ return v < 0 ? 0 : (v > 255 ? 255 : v); }
+  function clampIndex(i, n){ return i < 0 ? 0 : (i >= n ? n - 1 : i); }
+
+  function boxBlurH(src, w, h, radius){
+    var out = new Float32Array(w*h);
+    var windowSize = radius*2+1;
+    for (var y=0; y<h; y++){
+      var rowStart = y*w, sum = 0;
+      for (var k=-radius; k<=radius; k++) sum += src[rowStart + clampIndex(k, w)];
+      for (var x=0; x<w; x++){
+        out[rowStart+x] = sum / windowSize;
+        sum += src[rowStart+clampIndex(x+radius+1, w)] - src[rowStart+clampIndex(x-radius, w)];
+      }
+    }
+    return out;
+  }
+
+  function boxBlurV(src, w, h, radius){
+    var out = new Float32Array(w*h);
+    var windowSize = radius*2+1;
+    for (var x=0; x<w; x++){
+      var sum = 0;
+      for (var k=-radius; k<=radius; k++) sum += src[clampIndex(k, h)*w + x];
+      for (var y=0; y<h; y++){
+        out[y*w+x] = sum / windowSize;
+        sum += src[clampIndex(y+radius+1, h)*w+x] - src[clampIndex(y-radius, h)*w+x];
+      }
+    }
+    return out;
+  }
+
+  function boxBlur(src, w, h, radius){
+    if (radius < 1) return src.slice();
+    return boxBlurV(boxBlurH(src, w, h, radius), w, h, radius);
+  }
+
+  function computeLuminance(imageData){
+    var data = imageData.data;
+    var L = new Float32Array(imageData.width * imageData.height);
+    for (var i=0, p=0; i<data.length; i+=4, p++){
+      L[p] = (0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2]) / 255;
+    }
+    return L;
+  }
+
+  // ---------- Map generators ----------
+  function computeAlbedo(imageData, lowFreq, w, h){
+    var data = imageData.data, out = new ImageData(w, h), od = out.data, meanLow = 0;
+    for (var i=0; i<lowFreq.length; i++) meanLow += lowFreq[i];
+    meanLow /= lowFreq.length;
+    for (var p=0, j=0; p<w*h; p++, j+=4){
+      var factor = Math.min(Math.max(meanLow / Math.max(lowFreq[p], 0.02), 0.35), 2.8);
+      od[j]   = clampVal(data[j]   * factor);
+      od[j+1] = clampVal(data[j+1] * factor);
+      od[j+2] = clampVal(data[j+2] * factor);
+      od[j+3] = 255;
+    }
+    return out;
+  }
+
+  function computeNormal(Lsmooth, w, h, strength){
+    var out = new ImageData(w, h), od = out.data;
+    for (var y=0; y<h; y++){
+      for (var x=0; x<w; x++){
+        var xm = clampIndex(x-1, w), xp = clampIndex(x+1, w);
+        var ym = clampIndex(y-1, h), yp = clampIndex(y+1, h);
+        var gx = (Lsmooth[y*w+xp] - Lsmooth[y*w+xm]) * 0.5;
+        var gy = (Lsmooth[yp*w+x] - Lsmooth[ym*w+x]) * 0.5;
+        var nx = -gx * strength, ny = -gy * strength, nz = 1;
+        var len = Math.sqrt(nx*nx + ny*ny + nz*nz) || 1;
+        var idx = (y*w+x)*4;
+        od[idx]   = clampVal(((nx/len)*0.5+0.5)*255);
+        od[idx+1] = clampVal(((ny/len)*0.5+0.5)*255);
+        od[idx+2] = clampVal(((nz/len)*0.5+0.5)*255);
+        od[idx+3] = 255;
+      }
+    }
+    return out;
+  }
+
+  function computeRoughness(L, w, h, invert){
+    var radius = 3, L2 = new Float32Array(L.length);
+    for (var i=0; i<L.length; i++) L2[i] = L[i]*L[i];
+    var meanL = boxBlur(L, w, h, radius), meanL2 = boxBlur(L2, w, h, radius);
+    var std = new Float32Array(L.length), maxStd = 1e-5;
+    for (i=0; i<L.length; i++){
+      var v = Math.max(0, meanL2[i] - meanL[i]*meanL[i]);
+      std[i] = Math.sqrt(v);
+      if (std[i] > maxStd) maxStd = std[i];
+    }
+    var out = new ImageData(w, h), od = out.data;
+    for (var p=0, j=0; p<w*h; p++, j+=4){
+      var val = std[p] / maxStd;
+      if (invert) val = 1 - val;
+      var g = clampVal(val*255);
+      od[j]=g; od[j+1]=g; od[j+2]=g; od[j+3]=255;
+    }
+    return out;
+  }
+
+  function computeAO(L, w, h, strength){
+    var local = boxBlur(L, w, h, 4), out = new ImageData(w, h), od = out.data;
+    for (var p=0, j=0; p<w*h; p++, j+=4){
+      var occlusion = Math.max(0, local[p]-L[p]) * strength;
+      var g = clampVal(Math.min(1, Math.max(0, 1-occlusion))*255);
+      od[j]=g; od[j+1]=g; od[j+2]=g; od[j+3]=255;
+    }
+    return out;
+  }
+
+  function computeMetallic(w, h, value){
+    var out = new ImageData(w, h), od = out.data, g = clampVal(value*255);
+    for (var i=0; i<od.length; i+=4){ od[i]=g; od[i+1]=g; od[i+2]=g; od[i+3]=255; }
+    return out;
+  }
+
+  function drawToCanvas(canvas, imageData){
+    canvas.width = imageData.width; canvas.height = imageData.height;
+    canvas.getContext('2d').putImageData(imageData, 0, 0);
+  }
+
+  // ---------- Pipeline ----------
+  function runPipeline(){
+    if (!cachedImageData) return;
+    var w = cachedW, h = cachedH;
+    var Lsmooth = boxBlur(cachedL, w, h, 1);
+    var lowFreqBig = boxBlur(cachedL, w, h, Math.max(8, Math.round(Math.min(w, h) * 0.15)));
+
+    drawToCanvas(albedoCanvas, computeAlbedo(cachedImageData, lowFreqBig, w, h));
+    drawToCanvas(normalCanvas, computeNormal(Lsmooth, w, h, parseFloat(normalStrengthInput.value)));
+    drawToCanvas(roughnessCanvas, computeRoughness(cachedL, w, h, roughnessInvertInput.checked));
+    drawToCanvas(aoCanvas, computeAO(cachedL, w, h, parseFloat(aoStrengthInput.value)));
+    drawToCanvas(metallicCanvas, computeMetallic(w, h, parseFloat(metallicInput.value)));
+
+    var metaTxt = w + '×' + h + ' · PNG';
+    document.getElementById('albedoMeta').textContent = metaTxt;
+    document.getElementById('normalMeta').textContent = metaTxt;
+    document.getElementById('roughnessMeta').textContent = metaTxt;
+    document.getElementById('aoMeta').textContent = metaTxt;
+
+    update3DTextures();
+  }
+
+  function capturePhoto(){
+    if (!stream) return;
+    var vw = video.videoWidth, vh = video.videoHeight;
+    if (!vw || !vh) return;
+
+    var cropSize = Math.min(vw, vh);
+    var sx = (vw - cropSize) / 2, sy = (vh - cropSize) / 2;
+    var outSize = Math.min(1024, cropSize);
+
+    var tmp = document.createElement('canvas');
+    tmp.width = outSize; tmp.height = outSize;
+    var ctx = tmp.getContext('2d');
+    ctx.drawImage(video, sx, sy, cropSize, cropSize, 0, 0, outSize, outSize);
+
+    cachedImageData = ctx.getImageData(0, 0, outSize, outSize);
+    cachedW = outSize; cachedH = outSize;
+    cachedL = computeLuminance(cachedImageData);
+
+    drawToCanvas(sourceCanvas, cachedImageData);
+    sourceMeta.textContent = outSize + '×' + outSize + ' px';
+
+    runPipeline();
+    showResults();
+  }
+
+  function showResults(){
+    stopCamera();
+    captureView.style.display = 'none';
+    resultsView.style.display = 'block';
+  }
+
+  function showCapture(){
+    resultsView.style.display = 'none';
+    captureView.style.display = 'block';
+    placeholder.style.display = 'flex';
+    placeholder.textContent = 'Toca «Activar cámara» para empezar';
+    shutterBtn.disabled = true; torchBtn.disabled = true;
+    statusEl.textContent = 'Cámara desactivada';
+    startCamera();
+  }
+
+  // ---------- Downloads ----------
+  function canvasByKey(key){
+    return { albedo: albedoCanvas, normal: normalCanvas, roughness: roughnessCanvas,
+      ao: aoCanvas, metallic: metallicCanvas }[key];
+  }
+
+  function downloadCanvas(canvas, filename){
+    canvas.toBlob(function(blob){
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    }, 'image/png');
+  }
+
+  async function downloadAll(){
+    var zip = new JSZip();
+    var items = [
+      [albedoCanvas, 'albedo.png'], [normalCanvas, 'normal.png'],
+      [roughnessCanvas, 'roughness.png'], [aoCanvas, 'ao.png'],
+      [metallicCanvas, 'metallic.png']
+    ];
+    for (var i=0; i<items.length; i++){
+      var canvas = items[i][0], name = items[i][1];
+      var blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      zip.file(name, blob);
+    }
+    var content = await zip.generateAsync({ type: 'blob' });
+    var url = URL.createObjectURL(content);
+    var a = document.createElement('a');
+    a.href = url; a.download = 'material-pbr.zip';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  // ---------- Events ----------
+  startCameraBtn.addEventListener('click', startCamera);
+  shutterBtn.addEventListener('click', capturePhoto);
+  torchBtn.addEventListener('click', toggleTorch);
+  retakeBtn.addEventListener('click', showCapture);
+  downloadAllBtn.addEventListener('click', downloadAll);
+
+  document.querySelectorAll('[data-download]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var key = btn.getAttribute('data-download');
+      downloadCanvas(canvasByKey(key), key + '.png');
+    });
+  });
+
+  [normalStrengthInput, aoStrengthInput, metallicInput, roughnessInvertInput, dispInput].forEach(function(el){
+    el.addEventListener('input', function(){
+      normalStrengthVal.textContent = parseFloat(normalStrengthInput.value).toFixed(1);
+      aoStrengthVal.textContent = parseFloat(aoStrengthInput.value).toFixed(1);
+      metallicVal.textContent = parseFloat(metallicInput.value).toFixed(2);
+      dispVal.textContent = parseFloat(dispInput.value).toFixed(3);
+      runPipeline();
+    });
+  });
+
+})();
+</script>
 </body>
 </html>
