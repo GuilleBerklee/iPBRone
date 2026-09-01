@@ -25,7 +25,6 @@ class App {
       downloadCurrentBtn: document.getElementById('downloadCurrentBtn'),
       resSelect: document.getElementById('resSelect'),
       currentLayerTitle: document.getElementById('currentLayerTitle'),
-
       hdriSelect: document.getElementById('hdriSelect'),
       hdriRotation: document.getElementById('hdriRotation'),
       hdriRotVal: document.getElementById('hdriRotVal'),
@@ -40,21 +39,45 @@ class App {
       },
       
       inputs: {
+        // Albedo
+        albedoContrast: document.getElementById('albedoContrast'),
+        albedoSaturation: document.getElementById('albedoSaturation'),
+        albedoTint: document.getElementById('albedoTint'),
+        // Normal
         normalStrength: document.getElementById('normalStrength'),
-        aoStrength: document.getElementById('aoStrength'),
-        metallicSlider: document.getElementById('metallicSlider'),
+        normalIntensity: document.getElementById('normalIntensity'),
+        // Height
+        heightContrast: document.getElementById('heightContrast'),
+        heightOffset: document.getElementById('heightOffset'),
         dispSlider: document.getElementById('dispSlider'),
-        heightStrength: document.getElementById('heightStrength'),
-        heightInvert: document.getElementById('heightInvert'),
-        roughnessInvert: document.getElementById('roughnessInvert')
+        // Roughness
+        roughnessContrast: document.getElementById('roughnessContrast'),
+        roughnessLow: document.getElementById('roughnessLow'),
+        roughnessHigh: document.getElementById('roughnessHigh'),
+        roughnessOffset: document.getElementById('roughnessOffset'),
+        roughnessInvert: document.getElementById('roughnessInvert'),
+        // AO
+        aoAmount: document.getElementById('aoAmount'),
+        aoContrast: document.getElementById('aoContrast'),
+        // Metallic
+        metallicSlider: document.getElementById('metallicSlider')
       },
       
       labels: {
-        normalVal: document.getElementById('normalStrengthVal'),
-        aoVal: document.getElementById('aoStrengthVal'),
-        metallicVal: document.getElementById('metallicVal'),
+        albedoContrastVal: document.getElementById('albedoContrastVal'),
+        albedoSaturationVal: document.getElementById('albedoSaturationVal'),
+        normalStrengthVal: document.getElementById('normalStrengthVal'),
+        normalIntensityVal: document.getElementById('normalIntensityVal'),
+        heightContrastVal: document.getElementById('heightContrastVal'),
+        heightOffsetVal: document.getElementById('heightOffsetVal'),
         dispVal: document.getElementById('dispVal'),
-        heightVal: document.getElementById('heightStrengthVal')
+        roughnessContrastVal: document.getElementById('roughnessContrastVal'),
+        roughnessLowVal: document.getElementById('roughnessLowVal'),
+        roughnessHighVal: document.getElementById('roughnessHighVal'),
+        roughnessOffsetVal: document.getElementById('roughnessOffsetVal'),
+        aoAmountVal: document.getElementById('aoAmountVal'),
+        aoContrastVal: document.getElementById('aoContrastVal'),
+        metallicVal: document.getElementById('metallicVal')
       }
     };
   }
@@ -65,15 +88,6 @@ class App {
       const banner = document.getElementById('secureBanner');
       if (banner) banner.style.display = 'block';
     }
-    this.dom.hdriSelect.addEventListener('change', (e) => {
-      this.viewer3D.loadHDRI(e.target.value);
-    });
-
-    this.dom.hdriRotation.addEventListener('input', (e) => {
-      const deg = parseFloat(e.target.value);
-      this.dom.hdriRotVal.textContent = `${deg}°`;
-      this.viewer3D.setHDRIRotation(deg);
-    });
   }
 
   bindEvents() {
@@ -86,7 +100,18 @@ class App {
       this.downloadSingleCanvas(this.dom.canvases[this.activeLayer], `${this.activeLayer}.png`);
     });
 
-    // Cambio de pestañas de capas
+    // HDRI
+    this.dom.hdriSelect.addEventListener('change', (e) => {
+      this.viewer3D.loadHDRI(e.target.value);
+    });
+
+    this.dom.hdriRotation.addEventListener('input', (e) => {
+      const deg = parseFloat(e.target.value);
+      this.dom.hdriRotVal.textContent = `${deg}°`;
+      this.viewer3D.setHDRIRotation(deg);
+    });
+
+    // Pestañas
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const layer = e.target.dataset.layer;
@@ -94,7 +119,7 @@ class App {
       });
     });
 
-    // Actualización de sliders y recalculo
+    // Inputs
     Object.values(this.dom.inputs).forEach(input => {
       input.addEventListener('input', () => {
         this.updateLabels();
@@ -115,17 +140,14 @@ class App {
   setActiveLayer(layerKey) {
     this.activeLayer = layerKey;
 
-    // Actualizar botones de pestaña
     document.querySelectorAll('.tab-btn').forEach(b => {
       b.classList.toggle('active', b.dataset.layer === layerKey);
     });
 
-    // Mostrar el canvas correspondientes
     Object.keys(this.dom.canvases).forEach(k => {
       this.dom.canvases[k].classList.toggle('active', k === layerKey);
     });
 
-    // Cambiar el título
     const titles = {
       albedo: 'Mapa Albedo / Color',
       normal: 'Mapa de Normales',
@@ -136,7 +158,6 @@ class App {
     };
     this.dom.currentLayerTitle.textContent = titles[layerKey] || layerKey;
 
-    // Mostrar panel de control específico
     document.querySelectorAll('.layer-control-group').forEach(group => {
       group.style.display = 'none';
     });
@@ -201,7 +222,6 @@ class App {
     const sx = (vw - cropSize) / 2;
     const sy = (vh - cropSize) / 2;
 
-    // Gestión de resolución seleccionada
     const resSetting = this.dom.resSelect.value;
     let outSize = cropSize;
     if (resSetting !== 'max') {
@@ -224,14 +244,12 @@ class App {
 
     this.stopCamera();
 
-    // Cambiar vista en el DOM inmediatamente
     this.dom.captureView.style.display = 'none';
     this.dom.resultsView.style.display = 'block';
 
-    // Se da un pequeño margen de tiempo para repintar la vista antes del cálculo intensivo
     setTimeout(() => {
       this.viewer3D.init();
-      this.viewer3D.loadHDRI(this.dom.hdriSelect.value); // Carga el HDRI activo
+      this.viewer3D.loadHDRI(this.dom.hdriSelect.value);
       this.viewer3D.resize();
       this.processPBR();
       this.setActiveLayer('albedo');
@@ -245,23 +263,47 @@ class App {
     const Lsmooth = PBRGenerator.boxBlur(luminance, w, h, 1);
     const lowFreqBig = PBRGenerator.boxBlur(luminance, w, h, Math.max(8, Math.round(Math.min(w, h) * 0.15)));
 
-    const normalStr = parseFloat(this.dom.inputs.normalStrength.value);
-    const aoStr = parseFloat(this.dom.inputs.aoStrength.value);
-    const metallicVal = parseFloat(this.dom.inputs.metallicSlider.value);
-    const dispVal = parseFloat(this.dom.inputs.dispSlider.value);
-    const heightStr = parseFloat(this.dom.inputs.heightStrength.value);
-    const heightInvert = this.dom.inputs.heightInvert.checked;
-    const invertRoughness = this.dom.inputs.roughnessInvert.checked;
+    const inp = this.dom.inputs;
 
-    // Algoritmos PBR
-    const albedoData = PBRGenerator.generateAlbedo(imageData, lowFreqBig, w, h);
-    const normalData = PBRGenerator.generateNormal(Lsmooth, w, h, normalStr);
-    const roughnessData = PBRGenerator.generateRoughness(luminance, w, h, invertRoughness);
-    const heightData = PBRGenerator.generateHeight(luminance, w, h, heightStr, heightInvert);
-    const aoData = PBRGenerator.generateAO(luminance, w, h, aoStr);
+    // Albedo
+    const albedoData = PBRGenerator.generateAlbedo(imageData, lowFreqBig, w, h, {
+      contrast: parseFloat(inp.albedoContrast.value),
+      saturation: parseFloat(inp.albedoSaturation.value),
+      tint: inp.albedoTint.value
+    });
+
+    // Normal
+    const normalData = PBRGenerator.generateNormal(Lsmooth, w, h, {
+      strength: parseFloat(inp.normalStrength.value),
+      intensity: parseFloat(inp.normalIntensity.value)
+    });
+
+    // Height
+    const heightData = PBRGenerator.generateHeight(luminance, w, h, {
+      contrast: parseFloat(inp.heightContrast.value),
+      offset: parseFloat(inp.heightOffset.value)
+    });
+
+    // Roughness
+    const roughnessData = PBRGenerator.generateRoughness(luminance, w, h, {
+      contrast: parseFloat(inp.roughnessContrast.value),
+      low: parseFloat(inp.roughnessLow.value),
+      high: parseFloat(inp.roughnessHigh.value),
+      offset: parseFloat(inp.roughnessOffset.value),
+      invert: inp.roughnessInvert.checked
+    });
+
+    // AO
+    const aoData = PBRGenerator.generateAO(luminance, w, h, {
+      amount: parseFloat(inp.aoAmount.value),
+      contrast: parseFloat(inp.aoContrast.value)
+    });
+
+    // Metallic
+    const metallicVal = parseFloat(inp.metallicSlider.value);
     const metallicData = PBRGenerator.generateMetallic(w, h, metallicVal);
 
-    // Pintar los canvas 2D
+    // Pintar canvas
     this.drawToCanvas(this.dom.canvases.albedo, albedoData);
     this.drawToCanvas(this.dom.canvases.normal, normalData);
     this.drawToCanvas(this.dom.canvases.roughness, roughnessData);
@@ -269,7 +311,8 @@ class App {
     this.drawToCanvas(this.dom.canvases.ao, aoData);
     this.drawToCanvas(this.dom.canvases.metallic, metallicData);
 
-    // Actualizar visor 3D
+    // Actualizar 3D
+    const dispVal = parseFloat(inp.dispSlider.value);
     this.viewer3D.updateTextures(this.dom.canvases, { disp: dispVal, metallic: metallicVal });
   }
 
@@ -281,11 +324,23 @@ class App {
   }
 
   updateLabels() {
-    this.dom.labels.normalVal.textContent = parseFloat(this.dom.inputs.normalStrength.value).toFixed(1);
-    this.dom.labels.aoVal.textContent = parseFloat(this.dom.inputs.aoStrength.value).toFixed(1);
-    this.dom.labels.metallicVal.textContent = parseFloat(this.dom.inputs.metallicSlider.value).toFixed(2);
-    this.dom.labels.dispVal.textContent = parseFloat(this.dom.inputs.dispSlider.value).toFixed(3);
-    this.dom.labels.heightVal.textContent = parseFloat(this.dom.inputs.heightStrength.value).toFixed(1);
+    const inp = this.dom.inputs;
+    const lbl = this.dom.labels;
+
+    lbl.albedoContrastVal.textContent = parseFloat(inp.albedoContrast.value).toFixed(2);
+    lbl.albedoSaturationVal.textContent = parseFloat(inp.albedoSaturation.value).toFixed(2);
+    lbl.normalStrengthVal.textContent = parseFloat(inp.normalStrength.value).toFixed(1);
+    lbl.normalIntensityVal.textContent = parseFloat(inp.normalIntensity.value).toFixed(1);
+    lbl.heightContrastVal.textContent = parseFloat(inp.heightContrast.value).toFixed(1);
+    lbl.heightOffsetVal.textContent = parseFloat(inp.heightOffset.value).toFixed(2);
+    lbl.dispVal.textContent = parseFloat(inp.dispSlider.value).toFixed(3);
+    lbl.roughnessContrastVal.textContent = parseFloat(inp.roughnessContrast.value).toFixed(1);
+    lbl.roughnessLowVal.textContent = parseFloat(inp.roughnessLow.value).toFixed(2);
+    lbl.roughnessHighVal.textContent = parseFloat(inp.roughnessHigh.value).toFixed(2);
+    lbl.roughnessOffsetVal.textContent = parseFloat(inp.roughnessOffset.value).toFixed(2);
+    lbl.aoAmountVal.textContent = parseFloat(inp.aoAmount.value).toFixed(1);
+    lbl.aoContrastVal.textContent = parseFloat(inp.aoContrast.value).toFixed(1);
+    lbl.metallicVal.textContent = parseFloat(inp.metallicSlider.value).toFixed(2);
   }
 
   showCaptureView() {

@@ -52,7 +52,6 @@ header p { font-size: 14px; color: var(--text-dim); margin: 0; }
 }
 .hint b { color: var(--text); }
 
-/* Selector de resolución */
 .resolution-selector {
   display: flex;
   align-items: center;
@@ -129,7 +128,7 @@ button.icon svg { width: 16px; height: 16px; }
 
 #results { display: none; }
 
-/* Visor 3D */
+/* Visor 3D y prevención de estiramiento */
 .viewer-3d-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 18px; }
 .viewer-3d-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--border); }
 .viewer-3d-header h3 { font-size: 14px; margin: 0; }
@@ -137,9 +136,57 @@ button.icon svg { width: 16px; height: 16px; }
 .mesh-btn { background: transparent; border: none; color: var(--text-dim); font-size: 11px; padding: 4px 8px; border-radius: 4px; cursor: pointer; }
 .mesh-btn.active { background: var(--warm); color: #241a06; }
 
-#canvas3d-container { width: 100%; aspect-ratio: 1/1; position: relative; background: #0d0e10; touch-action: none; }
+#canvas3d-container {
+  width: 100%;
+  aspect-ratio: 1/1;
+  position: relative;
+  background: #0d0e10;
+  touch-action: none;
+  overflow: hidden;
+}
+#canvas3d-container canvas {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
 
-/* Pestañas de Capas 2D */
+.hdri-controls {
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.hdri-controls .control-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+.hdri-controls label {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  color: var(--text-dim);
+}
+.hdri-controls select {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 12px;
+  outline: none;
+}
+.hdri-controls input[type=range] {
+  width: 60%;
+  accent-color: var(--warm);
+}
+
 .layer-tabs {
   display: flex;
   gap: 4px;
@@ -166,7 +213,6 @@ button.icon svg { width: 16px; height: 16px; }
   font-weight: 600;
 }
 
-/* Visor Único de Mapa 2D */
 .main-map-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -199,7 +245,6 @@ button.icon svg { width: 16px; height: 16px; }
   display: block;
 }
 
-/* Panel de Controles Contextuales */
 .controls-panel {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -211,49 +256,13 @@ button.icon svg { width: 16px; height: 16px; }
 .control:first-child { margin-top: 0; }
 .control label { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-dim); margin-bottom: 6px; }
 .control input[type=range] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+.control input[type=color] {
+  width: 44px; height: 26px; border: 1px solid var(--border); border-radius: 4px; background: none; cursor: pointer; padding: 0;
+}
 .control.checkbox { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .control.checkbox label { margin-bottom: 0; color: var(--text); cursor: pointer; }
 
 .actions { display: flex; gap: 10px; margin-bottom: 22px; }
 .actions button { flex: 1; }
-
-.hdri-controls {
-  padding: 12px 14px;
-  background: var(--surface-2);
-  border-top: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.hdri-controls .control-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 13px;
-}
-
-.hdri-controls label {
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
-  color: var(--text-dim);
-}
-
-.hdri-controls select {
-  background: var(--surface);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 5px 8px;
-  font-size: 12px;
-  outline: none;
-}
-
-.hdri-controls input[type=range] {
-  width: 60%;
-  accent-color: var(--warm);
-}
 
 footer { margin-top: 8px; font-size: 12px; color: var(--text-dim); text-align: center; }

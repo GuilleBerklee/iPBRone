@@ -30,8 +30,8 @@ export class MaterialViewer3D {
     this.camera.position.set(0, 0, 3.5);
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    this.renderer.setSize(w, h);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setSize(w, h, false);
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.0;
     this.container.appendChild(this.renderer.domElement);
@@ -41,7 +41,6 @@ export class MaterialViewer3D {
     this.controls.dampingFactor = 0.05;
     this.controls.enableZoom = true;
 
-    // Luces de apoyo
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
     this.scene.add(ambientLight);
 
@@ -49,7 +48,6 @@ export class MaterialViewer3D {
     mainLight.position.set(3, 4, 3);
     this.scene.add(mainLight);
 
-    // Material inicial
     this.material = new THREE.MeshStandardMaterial({
       roughness: 0.5,
       metalness: 0.0,
@@ -87,7 +85,7 @@ export class MaterialViewer3D {
       
       this.scene.environment = texture;
       this.scene.background = texture;
-      this.scene.backgroundBlurriness = 0.5; // Desenfoca el fondo para no distraer de la malla
+      this.scene.backgroundBlurriness = 0.5;
     }, undefined, (err) => {
       console.warn(`No se pudo cargar el mapa HDRI: ${path}`, err);
     });
@@ -104,15 +102,17 @@ export class MaterialViewer3D {
     if (!this.mesh) return;
     this.mesh.geometry.dispose();
 
+    let newGeo;
     if (type === 'sphere') {
-      this.mesh.geometry = new THREE.SphereGeometry(1, 128, 128);
+      newGeo = new THREE.SphereGeometry(1, 128, 128);
     } else if (type === 'cube') {
-      this.mesh.geometry = new THREE.BoxGeometry(1.5, 1.5, 1.5, 64, 64, 64);
+      newGeo = new THREE.BoxGeometry(1.5, 1.5, 1.5, 64, 64, 64);
     } else if (type === 'plane') {
-      this.mesh.geometry = new THREE.PlaneGeometry(2, 2, 128, 128);
+      newGeo = new THREE.PlaneGeometry(2, 2, 128, 128);
     }
     
-    this.mesh.geometry.setAttribute('uv2', new THREE.BufferAttribute(geometry.attributes.uv.array, 2));
+    newGeo.setAttribute('uv2', new THREE.BufferAttribute(newGeo.attributes.uv.array, 2));
+    this.mesh.geometry = newGeo;
   }
 
   updateTextures(canvases, settings) {
@@ -155,9 +155,10 @@ export class MaterialViewer3D {
   resize() {
     if (!this.renderer || !this.container) return;
     const w = this.container.clientWidth;
-    const h = this.container.clientHeight || w;
+    const h = this.container.clientHeight;
+    if (w === 0 || h === 0) return;
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
-    this.renderer.setSize(w, h);
+    this.renderer.setSize(w, h, false);
   }
 }
