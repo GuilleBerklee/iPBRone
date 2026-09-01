@@ -13,10 +13,8 @@
   
   <link rel="stylesheet" href="styles.css">
   
-  <!-- Dependencias Externas Cargadas como Módulos o Globales Seguras -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   
-  <!-- Import Map para Three.js como módulo ES6 -->
   <script type="importmap">
     {
       "imports": {
@@ -41,7 +39,18 @@
   <!-- Vista de Captura -->
   <div id="captureView">
     <div class="hint">
-      <b>Antes de capturar:</b> Activa la linterna y coloca el teléfono paralelo a la superficie a unos 15–20&nbsp;cm.
+      <b>Antes de capturar:</b> Selecciona la resolución deseada, activa la linterna y coloca el teléfono paralelo a la superficie a unos 15–20&nbsp;cm.
+    </div>
+
+    <!-- Selector de Resolución -->
+    <div class="resolution-selector">
+      <label for="resSelect">Resolución de textura:</label>
+      <select id="resSelect">
+        <option value="512">512 × 512 px</option>
+        <option value="1024" selected>1024 × 1024 px</option>
+        <option value="2048">2048 × 2048 px</option>
+        <option value="max">Máxima Nativa</option>
+      </select>
     </div>
 
     <div class="viewfinder">
@@ -70,11 +79,6 @@
 
   <!-- Vista de Resultados -->
   <div id="results">
-    <div class="source-row">
-      <canvas id="sourceCanvas"></canvas>
-      <div class="meta"><b>Captura original</b><span id="sourceMeta"></span></div>
-    </div>
-
     <!-- Visor 3D -->
     <div class="viewer-3d-card">
       <div class="viewer-3d-header">
@@ -88,73 +92,89 @@
       <div id="canvas3d-container"></div>
     </div>
 
-    <!-- Grid Mapas 2D -->
-    <div class="grid">
-      <div class="tile">
-        <canvas id="albedoCanvas"></canvas>
-        <div class="tile-foot">
-          <div><div class="t-label">Albedo</div><div class="t-sub" id="albedoMeta">PNG</div></div>
-          <button class="icon" data-download="albedo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14"/></svg></button>
-        </div>
+    <!-- Pestañas de Capas 2D -->
+    <div class="layer-tabs">
+      <button class="tab-btn active" data-layer="albedo">Albedo</button>
+      <button class="tab-btn" data-layer="normal">Normal</button>
+      <button class="tab-btn" data-layer="roughness">Roughness</button>
+      <button class="tab-btn" data-layer="height">Height</button>
+      <button class="tab-btn" data-layer="ao">AO</button>
+      <button class="tab-btn" data-layer="metallic">Metallic</button>
+    </div>
+
+    <!-- Visor Único de Capa 2D -->
+    <div class="main-map-card">
+      <div class="main-map-header">
+        <span id="currentLayerTitle">Mapa Albedo</span>
+        <button id="downloadCurrentBtn" class="icon" aria-label="Descargar capa actual">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14"/></svg>
+        </button>
       </div>
-      <div class="tile">
-        <canvas id="normalCanvas"></canvas>
-        <div class="tile-foot">
-          <div><div class="t-label">Normal</div><div class="t-sub" id="normalMeta">PNG</div></div>
-          <button class="icon" data-download="normal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14"/></svg></button>
-        </div>
-      </div>
-      <div class="tile">
-        <canvas id="roughnessCanvas"></canvas>
-        <div class="tile-foot">
-          <div><div class="t-label">Roughness</div><div class="t-sub" id="roughnessMeta">PNG</div></div>
-          <button class="icon" data-download="roughness"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14"/></svg></button>
-        </div>
-      </div>
-      <div class="tile">
-        <canvas id="aoCanvas"></canvas>
-        <div class="tile-foot">
-          <div><div class="t-label">AO</div><div class="t-sub" id="aoMeta">PNG</div></div>
-          <button class="icon" data-download="ao"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14"/></svg></button>
-        </div>
+      
+      <!-- Contenedor dinámico de Canvas 2D -->
+      <div class="single-canvas-container">
+        <canvas id="albedoCanvas" class="layer-canvas active"></canvas>
+        <canvas id="normalCanvas" class="layer-canvas"></canvas>
+        <canvas id="roughnessCanvas" class="layer-canvas"></canvas>
+        <canvas id="heightCanvas" class="layer-canvas"></canvas>
+        <canvas id="aoCanvas" class="layer-canvas"></canvas>
+        <canvas id="metallicCanvas" class="layer-canvas"></canvas>
       </div>
     </div>
 
-    <div class="tile" style="margin-bottom:18px;">
-      <canvas id="metallicCanvas" style="aspect-ratio:3/1;"></canvas>
-      <div class="tile-foot">
-        <div><div class="t-label">Metallic</div><div class="t-sub">Valor constante · PNG</div></div>
-        <button class="icon" data-download="metallic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14"/></svg></button>
+    <!-- Panel de Ajustes Contextuales (cambia según la capa activa) -->
+    <div class="controls-panel">
+      <!-- Ajustes Normal -->
+      <div class="layer-control-group" id="ctrl-normal">
+        <div class="control">
+          <label><span>Intensidad Normal Map</span><span id="normalStrengthVal">2.5</span></label>
+          <input type="range" id="normalStrength" min="0.5" max="6" step="0.1" value="2.5">
+        </div>
+      </div>
+
+      <!-- Ajustes Roughness -->
+      <div class="layer-control-group" id="ctrl-roughness" style="display:none;">
+        <div class="control checkbox">
+          <input type="checkbox" id="roughnessInvert">
+          <label for="roughnessInvert">Invertir mapa de rugosidad</label>
+        </div>
+      </div>
+
+      <!-- Ajustes Height -->
+      <div class="layer-control-group" id="ctrl-height" style="display:none;">
+        <div class="control">
+          <label><span>Intensidad de Altura (Height / Displacement)</span><span id="heightStrengthVal">1.0</span></label>
+          <input type="range" id="heightStrength" min="0.1" max="3" step="0.1" value="1.0">
+        </div>
+        <div class="control">
+          <label><span>Escala de desplazamiento en 3D</span><span id="dispVal">0.05</span></label>
+          <input type="range" id="dispSlider" min="0" max="0.2" step="0.005" value="0.05">
+        </div>
+        <div class="control checkbox">
+          <input type="checkbox" id="heightInvert">
+          <label for="heightInvert">Invertir mapa de altura</label>
+        </div>
+      </div>
+
+      <!-- Ajustes AO -->
+      <div class="layer-control-group" id="ctrl-ao" style="display:none;">
+        <div class="control">
+          <label><span>Intensidad Oclusión Ambiental (AO)</span><span id="aoStrengthVal">3.0</span></label>
+          <input type="range" id="aoStrength" min="0.5" max="8" step="0.1" value="3.0">
+        </div>
+      </div>
+
+      <!-- Ajustes Metallic -->
+      <div class="layer-control-group" id="ctrl-metallic" style="display:none;">
+        <div class="control">
+          <label><span>Valor constante metálico</span><span id="metallicVal">0.0</span></label>
+          <input type="range" id="metallicSlider" min="0" max="1" step="0.05" value="0">
+        </div>
       </div>
     </div>
-
-    <!-- Ajustes Avanzados -->
-    <details>
-      <summary>Ajustes avanzados</summary>
-      <div class="control">
-        <label><span>Intensidad del normal map</span><span id="normalStrengthVal">2.5</span></label>
-        <input type="range" id="normalStrength" min="0.5" max="6" step="0.1" value="2.5">
-      </div>
-      <div class="control">
-        <label><span>Intensidad de desplazamiento (Height 3D)</span><span id="dispVal">0.05</span></label>
-        <input type="range" id="dispSlider" min="0" max="0.2" step="0.005" value="0.05">
-      </div>
-      <div class="control">
-        <label><span>Intensidad de oclusión (AO)</span><span id="aoStrengthVal">3.0</span></label>
-        <input type="range" id="aoStrength" min="0.5" max="8" step="0.1" value="3.0">
-      </div>
-      <div class="control">
-        <label><span>Metallic constante</span><span id="metallicVal">0.0</span></label>
-        <input type="range" id="metallicSlider" min="0" max="1" step="0.05" value="0">
-      </div>
-      <div class="control checkbox">
-        <input type="checkbox" id="roughnessInvert">
-        <label for="roughnessInvert">Invertir roughness</label>
-      </div>
-    </details>
 
     <div class="actions">
-      <button id="downloadAllBtn" class="primary">Descargar todo (.zip)</button>
+      <button id="downloadAllBtn" class="primary">Descargar paquete (.zip)</button>
       <button id="retakeBtn" class="ghost">Escanear otro</button>
     </div>
   </div>
@@ -164,7 +184,6 @@
   </footer>
 </div>
 
-<!-- Entry point modular -->
 <script type="module" src="app.js"></script>
 </body>
 </html>

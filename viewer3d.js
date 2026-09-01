@@ -97,36 +97,37 @@ export class MaterialViewer3D {
   updateTextures(canvases, settings) {
     if (!this.initialized) this.init();
 
-    // Limpieza de texturas previas
-    Object.keys(this.textures).forEach(k => {
-      if (this.textures[k]) this.textures[k].dispose();
-    });
-
-    // Carga de nuevas texturas desde los Canvas 2D
-    this.textures.map = new THREE.CanvasTexture(canvases.albedo);
-    this.textures.normalMap = new THREE.CanvasTexture(canvases.normal);
-    this.textures.roughnessMap = new THREE.CanvasTexture(canvases.roughness);
-    this.textures.aoMap = new THREE.CanvasTexture(canvases.ao);
-    this.textures.displacementMap = new THREE.CanvasTexture(canvases.roughness);
-
-    // Ajuste de wrapping para costuras suaves
-    Object.values(this.textures).forEach(tex => {
+    const createTexture = (canvas) => {
+      const tex = new THREE.CanvasTexture(canvas);
       tex.wrapS = THREE.RepeatWrapping;
       tex.wrapT = THREE.RepeatWrapping;
-    });
+      tex.needsUpdate = true;
+      return tex;
+    };
 
-    // Asignación al material
+    if (this.textures.map) this.textures.map.dispose();
+    if (this.textures.normalMap) this.textures.normalMap.dispose();
+    if (this.textures.roughnessMap) this.textures.roughnessMap.dispose();
+    if (this.textures.aoMap) this.textures.aoMap.dispose();
+    if (this.textures.displacementMap) this.textures.displacementMap.dispose();
+
+    this.textures.map = createTexture(canvases.albedo);
+    this.textures.normalMap = createTexture(canvases.normal);
+    this.textures.roughnessMap = createTexture(canvases.roughness);
+    this.textures.aoMap = createTexture(canvases.ao);
+    this.textures.displacementMap = createTexture(canvases.height);
+
     this.material.map = this.textures.map;
     this.material.normalMap = this.textures.normalMap;
     this.material.roughnessMap = this.textures.roughnessMap;
     this.material.aoMap = this.textures.aoMap;
     this.material.displacementMap = this.textures.displacementMap;
 
-    // Propiedades numéricas
     this.material.displacementScale = settings.disp;
     this.material.metalness = settings.metallic;
 
     this.material.needsUpdate = true;
+    this.resize();
   }
 
   onResize() {
