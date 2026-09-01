@@ -211,15 +211,17 @@ class App {
 
     this.stopCamera();
 
+    // Cambiar vista en el DOM inmediatamente
     this.dom.captureView.style.display = 'none';
     this.dom.resultsView.style.display = 'block';
 
-    requestAnimationFrame(() => {
+    // Se da un pequeño margen de tiempo para repintar la vista antes del cálculo intensivo
+    setTimeout(() => {
       this.viewer3D.init();
       this.viewer3D.resize();
       this.processPBR();
       this.setActiveLayer('albedo');
-    });
+    }, 50);
   }
 
   processPBR() {
