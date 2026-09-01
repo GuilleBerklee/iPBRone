@@ -8,8 +8,10 @@ class App {
     this.isTorchOn = false;
     this.cachedData = null;
     
+    // Instancia del visor 3D
     this.viewer3D = new MaterialViewer3D('canvas3d-container');
 
+    // Referencias a elementos del DOM
     this.dom = {
       video: document.getElementById('video'),
       placeholder: document.getElementById('placeholder'),
@@ -53,19 +55,22 @@ class App {
   init() {
     this.bindEvents();
     
+    // Verificación de contexto seguro (HTTPS o localhost)
     if (!window.isSecureContext && location.hostname !== 'localhost') {
-      document.getElementById('secureBanner').style.display = 'block';
+      const banner = document.getElementById('secureBanner');
+      if (banner) banner.style.display = 'block';
     }
   }
 
   bindEvents() {
+    // Eventos de cámara y navegación
     this.dom.startCameraBtn.addEventListener('click', () => this.startCamera());
     this.dom.shutterBtn.addEventListener('click', () => this.capturePhoto());
     this.dom.torchBtn.addEventListener('click', () => this.toggleTorch());
     this.dom.retakeBtn.addEventListener('click', () => this.showCaptureView());
     this.dom.downloadAllBtn.addEventListener('click', () => this.downloadZip());
 
-    // Eventos UI Controles PBR
+    // Eventos de ajuste de parámetros PBR
     Object.values(this.dom.inputs).forEach(input => {
       input.addEventListener('input', () => {
         this.updateLabels();
@@ -73,7 +78,7 @@ class App {
       });
     });
 
-    // Cambios de geometría 3D
+    // Conmutador de malla 3D (Esfera, Cubo, Plano)
     document.querySelectorAll('.mesh-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         document.querySelectorAll('.mesh-btn').forEach(b => b.classList.remove('active'));
@@ -82,11 +87,13 @@ class App {
       });
     });
 
-    // Descargas individuales
+    // Botones de descarga individual por mapa
     document.querySelectorAll('[data-download]').forEach(btn => {
       btn.addEventListener('click', () => {
         const key = btn.dataset.download;
-        this.downloadSingleCanvas(this.dom.canvases[key], `${key}.png`);
+        if (this.dom.canvases[key]) {
+          this.downloadSingleCanvas(this.dom.canvases[key], `${key}.png`);
+        }
       });
     });
   }
@@ -144,6 +151,7 @@ class App {
     const vh = this.dom.video.videoHeight;
     if (!vw || !vh) return;
 
+    // Recorte cuadrado centrado
     const cropSize = Math.min(vw, vh);
     const sx = (vw - cropSize) / 2;
     const sy = (vh - cropSize) / 2;
@@ -163,51 +171,62 @@ class App {
       luminance: PBRGenerator.computeLuminance(imageData)
     };
 
-    // Render original
+    // Renderizar imagen original de entrada
     this.drawToCanvas(this.dom.sourceCanvas, imageData);
     this.dom.sourceMeta.textContent = `${outSize}×${outSize} px`;
 
     this.stopCamera();
+    
+    // PASO CLAVE: Hacer visible la vista de resultados antes de iniciar el visor 3D
     this.dom.captureView.style.display = 'none';
     this.dom.resultsView.style.display = 'block';
 
-    this.processPBR();
+    // Esperar al siguiente cuadro de renderizado para asegurar que el contenedor tiene dimensiones en el DOM
+    requestAnimationFrame(() => {
+      this.viewer3D.init();
+      this.viewer3D.resize();
+      this.processPBR();
+    });
   }
 
   processPBR() {
     if (!this.cachedData) return;
     const { imageData, w, h, luminance } = this.cachedData;
 
+    // Filtros de frecuencia para mapas
     const Lsmooth = PBRGenerator.boxBlur(luminance, w, h, 1);
     const lowFreqBig = PBRGenerator.boxBlur(luminance, w, h, Math.max(8, Math.round(Math.min(w, h) * 0.15)));
 
+    // Obtención de valores UI
     const normalStr = parseFloat(this.dom.inputs.normalStrength.value);
     const aoStr = parseFloat(this.dom.inputs.aoStrength.value);
     const metallicVal = parseFloat(this.dom.inputs.metallicSlider.value);
     const dispVal = parseFloat(this.dom.inputs.dispSlider.value);
     const invertRoughness = this.dom.inputs.roughnessInvert.checked;
 
-    // Procesado 2D
+    // Generación de algoritmos PBR
     const albedoData = PBRGenerator.generateAlbedo(imageData, lowFreqBig, w, h);
     const normalData = PBRGenerator.generateNormal(Lsmooth, w, h, normalStr);
     const roughnessData = PBRGenerator.generateRoughness(luminance, w, h, invertRoughness);
     const aoData = PBRGenerator.generateAO(luminance, w, h, aoStr);
     const metallicData = PBRGenerator.generateMetallic(w, h, metallicVal);
 
+    // Renderizado en Canvas 2D
     this.drawToCanvas(this.dom.canvases.albedo, albedoData);
     this.drawToCanvas(this.dom.canvases.normal, normalData);
     this.drawToCanvas(this.dom.canvases.roughness, roughnessData);
     this.drawToCanvas(this.dom.canvases.ao, aoData);
     this.drawToCanvas(this.dom.canvases.metallic, metallicData);
 
-    // Actualización del Módulo 3D
+    // Actualizar visor 3D con las texturas recién generadas
     this.viewer3D.updateTextures(this.dom.canvases, { disp: dispVal, metallic: metallicVal });
   }
 
   drawToCanvas(canvas, imageData) {
     canvas.width = imageData.width;
     canvas.height = imageData.height;
-    canvas.getContext('2d').putImageData(imageData, 0, 0);
+    const ctx = canvas.getContext('2d');
+    ctx.putImageData(imageData, 0, 0);
   }
 
   updateLabels() {
@@ -228,6 +247,7 @@ class App {
 
   downloadSingleCanvas(canvas, filename) {
     canvas.toBlob(blob => {
+      if (!blob) return;
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -244,7 +264,7 @@ class App {
 
     for (const name of names) {
       const blob = await new Promise(res => this.dom.canvases[name].toBlob(res, 'image/png'));
-      zip.file(`${name}.png`, blob);
+      if (blob) zip.file(`${name}.png`, blob);
     }
 
     const zipBlob = await zip.generateAsync({ type: 'blob' });
@@ -257,7 +277,7 @@ class App {
   }
 }
 
-// Arrancar app al cargar DOM
+// Inicialización de la aplicación al cargar el DOM
 window.addEventListener('DOMContentLoaded', () => {
   const app = new App();
   app.init();
