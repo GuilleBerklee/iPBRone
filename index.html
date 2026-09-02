@@ -134,59 +134,118 @@
       <!-- Ajustes Albedo -->
       <div class="layer-control-group" id="ctrl-albedo">
         <div class="control">
-          <label><span>Contraste</span><span id="albedoContrastVal">1.0</span></label>
+          <label><span>Brightness</span><span id="albedoBrightnessVal">0.00</span></label>
+          <input type="range" id="albedoBrightness" min="-0.5" max="0.5" step="0.02" value="0.0">
+        </div>
+        <div class="control">
+          <label><span>Contrast</span><span id="albedoContrastVal">1.00</span></label>
           <input type="range" id="albedoContrast" min="0.2" max="2.5" step="0.05" value="1.0">
         </div>
         <div class="control">
-          <label><span>Saturación</span><span id="albedoSaturationVal">1.0</span></label>
+          <label><span>Saturation</span><span id="albedoSaturationVal">1.00</span></label>
           <input type="range" id="albedoSaturation" min="0.0" max="2.0" step="0.05" value="1.0">
         </div>
-        <div class="control" style="display:flex; justify-content: space-between; align-items:center;">
-          <label style="margin:0;">Tint / Color</label>
-          <input type="color" id="albedoTint" value="#ffffff">
+        <div class="control">
+          <label><span>Hue</span><span id="albedoHueVal">0°</span></label>
+          <input type="range" id="albedoHue" min="-180" max="180" step="1" value="0">
         </div>
       </div>
 
       <!-- Ajustes Normal -->
       <div class="layer-control-group" id="ctrl-normal" style="display:none;">
         <div class="control">
-          <label><span>Fuerza Normal (Strength)</span><span id="normalStrengthVal">2.5</span></label>
-          <input type="range" id="normalStrength" min="0.5" max="6.0" step="0.1" value="2.5">
+          <label><span>Strength (0 a 5)</span><span id="normalStrengthVal">2.5</span></label>
+          <input type="range" id="normalStrength" min="0.0" max="5.0" step="0.1" value="2.5">
         </div>
         <div class="control">
-          <label><span>Intensidad (Contraste)</span><span id="normalIntensityVal">1.0</span></label>
-          <input type="range" id="normalIntensity" min="0.2" max="3.0" step="0.1" value="1.0">
+          <label><span>Level</span><span id="normalLevelVal">1.0</span></label>
+          <input type="range" id="normalLevel" min="0.1" max="3.0" step="0.1" value="1.0">
+        </div>
+        <div class="control">
+          <label><span>Blur to Sharp (-10 a +10)</span><span id="normalBlurSharpVal">0</span></label>
+          <input type="range" id="normalBlurSharp" min="-10" max="10" step="1" value="0">
+        </div>
+        <div class="control" style="display:flex; justify-content:space-between; align-items:center;">
+          <label style="margin:0;">Filter</label>
+          <select id="normalFilter" style="background:var(--surface-2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:4px 8px;">
+            <option value="sobel" selected>Sobel</option>
+            <option value="scharr">Scharr</option>
+          </select>
+        </div>
+        <div class="control checkbox">
+          <input type="checkbox" id="normalInvertR">
+          <label for="normalInvertR">Invert R</label>
+        </div>
+        <div class="control checkbox">
+          <input type="checkbox" id="normalInvertG">
+          <label for="normalInvertG">Invert G</label>
+        </div>
+        <div class="control checkbox">
+          <input type="checkbox" id="normalInvertHeight">
+          <label for="normalInvertHeight">Invert Height</label>
+        </div>
+        <div class="control">
+          <label><span>Z Range</span><span id="normalZRangeVal">1.00</span></label>
+          <input type="range" id="normalZRange" min="0.1" max="2.0" step="0.05" value="1.0">
         </div>
       </div>
 
-      <!-- Ajustes Height -->
+      <!-- Ajustes Height / Displacement -->
       <div class="layer-control-group" id="ctrl-height" style="display:none;">
         <div class="control">
-          <label><span>Contraste</span><span id="heightContrastVal">1.0</span></label>
+          <label><span>Contrast</span><span id="heightContrastVal">1.0</span></label>
           <input type="range" id="heightContrast" min="0.2" max="3.0" step="0.1" value="1.0">
         </div>
         <div class="control">
-          <label><span>Offset (Desplazamiento base)</span><span id="heightOffsetVal">0.00</span></label>
-          <input type="range" id="heightOffset" min="-0.5" max="0.5" step="0.02" value="0.0">
+          <label><span>Blur to Sharp (-10 a +10)</span><span id="heightBlurSharpVal">0</span></label>
+          <input type="range" id="heightBlurSharp" min="-10" max="10" step="1" value="0">
+        </div>
+        <div class="control checkbox">
+          <input type="checkbox" id="heightInvert">
+          <label for="heightInvert">Invert</label>
         </div>
         <div class="control">
-          <label><span>Desplazamiento en 3D (Displacement)</span><span id="dispVal">0.05</span></label>
+          <label><span>Desplazamiento 3D</span><span id="dispVal">0.05</span></label>
           <input type="range" id="dispSlider" min="0" max="0.2" step="0.005" value="0.05">
+        </div>
+      </div>
+
+      <!-- Ajustes AO -->
+      <div class="layer-control-group" id="ctrl-ao" style="display:none;">
+        <div class="control">
+          <label><span>Strength</span><span id="aoStrengthVal">3.0</span></label>
+          <input type="range" id="aoStrength" min="0.0" max="5.0" step="0.1" value="3.0">
+        </div>
+        <div class="control">
+          <label><span>Mean</span><span id="aoMeanVal">0.50</span></label>
+          <input type="range" id="aoMean" min="0.0" max="1.0" step="0.05" value="0.5">
+        </div>
+        <div class="control">
+          <label><span>Range</span><span id="aoRangeVal">4</span></label>
+          <input type="range" id="aoRange" min="1" max="20" step="1" value="4">
+        </div>
+        <div class="control">
+          <label><span>Blur to Sharp (-10 a +10)</span><span id="aoBlurSharpVal">0</span></label>
+          <input type="range" id="aoBlurSharp" min="-10" max="10" step="1" value="0">
+        </div>
+        <div class="control checkbox">
+          <input type="checkbox" id="aoInvert">
+          <label for="aoInvert">Invert</label>
         </div>
       </div>
 
       <!-- Ajustes Roughness -->
       <div class="layer-control-group" id="ctrl-roughness" style="display:none;">
         <div class="control">
-          <label><span>Contraste</span><span id="roughnessContrastVal">1.0</span></label>
-          <input type="range" id="roughnessContrast" min="0.2" max="3.0" step="0.1" value="1.0">
+          <label><span>Strength</span><span id="roughnessStrengthVal">1.0</span></label>
+          <input type="range" id="roughnessStrength" min="0.1" max="3.0" step="0.1" value="1.0">
         </div>
         <div class="control">
-          <label><span>Valor Mínimo (Low)</span><span id="roughnessLowVal">0.00</span></label>
+          <label><span>Low level</span><span id="roughnessLowVal">0.00</span></label>
           <input type="range" id="roughnessLow" min="0.0" max="1.0" step="0.02" value="0.0">
         </div>
         <div class="control">
-          <label><span>Valor Máximo (High)</span><span id="roughnessHighVal">1.00</span></label>
+          <label><span>Max level</span><span id="roughnessHighVal">1.00</span></label>
           <input type="range" id="roughnessHigh" min="0.0" max="1.0" step="0.02" value="1.0">
         </div>
         <div class="control">
@@ -195,19 +254,7 @@
         </div>
         <div class="control checkbox">
           <input type="checkbox" id="roughnessInvert">
-          <label for="roughnessInvert">Invertir rugosidad</label>
-        </div>
-      </div>
-
-      <!-- Ajustes AO -->
-      <div class="layer-control-group" id="ctrl-ao" style="display:none;">
-        <div class="control">
-          <label><span>Intensidad (Amount)</span><span id="aoAmountVal">3.0</span></label>
-          <input type="range" id="aoAmount" min="0.5" max="8.0" step="0.1" value="3.0">
-        </div>
-        <div class="control">
-          <label><span>Contraste</span><span id="aoContrastVal">1.0</span></label>
-          <input type="range" id="aoContrast" min="0.2" max="3.0" step="0.1" value="1.0">
+          <label for="roughnessInvert">Invert</label>
         </div>
       </div>
 

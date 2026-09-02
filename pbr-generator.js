@@ -16,13 +16,44 @@ export class PBRGenerator {
     return Math.min(max, Math.max(min, val));
   }
 
-  static hexToRgb(hex) {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? {
-      r: parseInt(result[1], 16) / 255,
-      g: parseInt(result[2], 16) / 255,
-      b: parseInt(result[3], 16) / 255
-    } : { r: 1, g: 1, b: 1 };
+  static rgbToHsl(r, g, b) {
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h, s, l = (max + min) / 2;
+    if (max === min) {
+      h = s = 0;
+    } else {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+        case g: h = (b - r) / d + 2; break;
+        case b: h = (r - g) / d + 4; break;
+      }
+      h /= 6;
+    }
+    return [h, s, l];
+  }
+
+  static hslToRgb(h, s, l) {
+    let r, g, b;
+    if (s === 0) {
+      r = g = b = l;
+    } else {
+      const hue2rgb = (p, q, t) => {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1/6) return p + (q - p) * 6 * t;
+        if (t < 1/2) return q;
+        if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+        return p;
+      };
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const p = 2 * l - q;
+      r = hue2rgb(p, q, h + 1/3);
+      g = hue2rgb(p, q, h);
+      b = hue2rgb(p, q, h - 1/3);
+    }
+    return [r, g, b];
   }
 
   static boxBlur(src, w, h, radius) {
@@ -60,36 +91,46 @@ export class PBRGenerator {
     return boxBlurV(boxBlurH(src));
   }
 
+  static applyBlurSharp(data, w, h, amount) {
+    if (!amount || amount === 0) return data.slice();
+    if (amount > 0) {
+      return this.boxBlur(data, w, h, Math.round(amount));
+    } else {
+      const blurRadius = Math.max(1, Math.round(Math.abs(amount)));
+      const blurred = this.boxBlur(data, w, h, blurRadius);
+      const factor = Math.abs(amount) * 0.35;
+      const out = new Float32Array(data.length);
+      for (let i = 0; i < data.length; i++) {
+        out[i] = this.clamp(data[i] + (data[i] - blurred[i]) * factor);
+      }
+      return out;
+    }
+  }
+
   static generateAlbedo(imageData, lowFreq, w, h, opts = {}) {
-    const { contrast = 1.0, tint = '#ffffff', saturation = 1.0 } = opts;
+    const { brightness = 0.0, contrast = 1.0, saturation = 1.0, hue = 0 } = opts;
     const data = imageData.data;
     const out = new ImageData(w, h);
     const od = out.data;
-    const { r: tr, g: tg, b: tb } = this.hexToRgb(tint);
-    let meanLow = 0;
-    
-    for (let i = 0; i < lowFreq.length; i++) meanLow += lowFreq[i];
-    meanLow /= lowFreq.length;
 
-    for (let p = 0, j = 0; p < w * h; p++, j += 4) {
-      const factor = Math.min(Math.max(meanLow / Math.max(lowFreq[p], 0.02), 0.35), 2.8);
-      
-      let r = (data[j] * factor) / 255;
-      let g = (data[j + 1] * factor) / 255;
-      let b = (data[j + 2] * factor) / 255;
+    for (let j = 0; j < data.length; j += 4) {
+      let r = data[j] / 255;
+      let g = data[j + 1] / 255;
+      let b = data[j + 2] / 255;
 
-      const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-      r = lum + (r - lum) * saturation;
-      g = lum + (g - lum) * saturation;
-      b = lum + (b - lum) * saturation;
+      r += brightness;
+      g += brightness;
+      b += brightness;
 
       r = (r - 0.5) * contrast + 0.5;
       g = (g - 0.5) * contrast + 0.5;
       b = (b - 0.5) * contrast + 0.5;
 
-      r *= tr;
-      g *= tg;
-      b *= tb;
+      let [hVal, sVal, lVal] = this.rgbToHsl(this.clamp(r), this.clamp(g), this.clamp(b));
+      hVal = (hVal + hue / 360) % 1;
+      if (hVal < 0) hVal += 1;
+      sVal = this.clamp(sVal * saturation);
+      [r, g, b] = this.hslToRgb(hVal, sVal, lVal);
 
       od[j]     = Math.min(255, Math.max(0, r * 255));
       od[j + 1] = Math.min(255, Math.max(0, g * 255));
@@ -99,27 +140,51 @@ export class PBRGenerator {
     return out;
   }
 
-  static generateNormal(Lsmooth, w, h, opts = {}) {
-    const { strength = 2.5, intensity = 1.0 } = opts;
+  static generateNormal(L, w, h, opts = {}) {
+    const {
+      strength = 2.5,
+      level = 1.0,
+      blurSharp = 0,
+      filter = 'sobel',
+      invertR = false,
+      invertG = false,
+      invertHeight = false,
+      zRange = 1.0
+    } = opts;
+
+    let srcL = L;
+    if (invertHeight) {
+      srcL = new Float32Array(L.length);
+      for (let i = 0; i < L.length; i++) srcL[i] = 1.0 - L[i];
+    }
+
+    const processedL = this.applyBlurSharp(srcL, w, h, blurSharp);
     const out = new ImageData(w, h);
     const od = out.data;
 
-    const getL = (x, y) => {
-      const val = Lsmooth[y * w + x];
-      return this.clamp((val - 0.5) * intensity + 0.5, 0, 1);
-    };
+    const getL = (x, y) => processedL[this.clampIndex(y, h) * w + this.clampIndex(x, w)];
 
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
-        const xm = this.clampIndex(x - 1, w), xp = this.clampIndex(x + 1, w);
-        const ym = this.clampIndex(y - 1, h), yp = this.clampIndex(y + 1, h);
+        const tl = getL(x - 1, y - 1), tc = getL(x, y - 1), tr = getL(x + 1, y - 1);
+        const l  = getL(x - 1, y),                       r  = getL(x + 1, y);
+        const bl = getL(x - 1, y + 1), bc = getL(x, y + 1), br = getL(x + 1, y + 1);
 
-        const gx = (getL(xp, y) - getL(xm, y)) * 0.5;
-        const gy = (getL(x, yp) - getL(x, ym)) * 0.5;
+        let gx = 0, gy = 0;
+        if (filter === 'scharr') {
+          gx = (-3 * tl + 3 * tr - 10 * l + 10 * r - 3 * bl + 3 * br) / 32;
+          gy = (-3 * tl - 10 * tc - 3 * tr + 3 * bl + 10 * bc + 3 * br) / 32;
+        } else {
+          gx = (-1 * tl + 1 * tr - 2 * l + 2 * r - 1 * bl + 1 * br) / 8;
+          gy = (-1 * tl - 2 * tc - 1 * tr + 1 * bl + 2 * bc + 1 * br) / 8;
+        }
 
-        const nx = -gx * strength;
-        const ny = -gy * strength;
-        const nz = 1.0;
+        let nx = -gx * strength * level;
+        let ny = -gy * strength * level;
+        let nz = 1.0 / Math.max(0.01, zRange);
+
+        if (invertR) nx = -nx;
+        if (invertG) ny = -ny;
 
         const len = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
         const idx = (y * w + x) * 4;
@@ -134,16 +199,45 @@ export class PBRGenerator {
   }
 
   static generateHeight(L, w, h, opts = {}) {
-    const { contrast = 1.0, offset = 0.0, strength = 1.0 } = opts;
-    const lowFreq = this.boxBlur(L, w, h, 2);
+    const { contrast = 1.0, blurSharp = 0, invert = false } = opts;
+    let srcL = L;
+    if (invert) {
+      srcL = new Float32Array(L.length);
+      for (let i = 0; i < L.length; i++) srcL[i] = 1.0 - L[i];
+    }
+
+    const processedL = this.applyBlurSharp(srcL, w, h, blurSharp);
     const out = new ImageData(w, h);
     const od = out.data;
 
     for (let p = 0, j = 0; p < w * h; p++, j += 4) {
-      let val = lowFreq[p] * strength;
-      val = (val - 0.5) * contrast + 0.5 + offset;
+      let val = (processedL[p] - 0.5) * contrast + 0.5;
       val = this.clamp(val, 0, 1);
-      
+
+      const g = Math.min(255, Math.max(0, val * 255));
+      od[j] = od[j + 1] = od[j + 2] = g;
+      od[j + 3] = 255;
+    }
+    return out;
+  }
+
+  static generateAO(L, w, h, opts = {}) {
+    const { strength = 3.0, mean = 0.5, range = 4, blurSharp = 0, invert = false } = opts;
+    
+    const processedL = this.applyBlurSharp(L, w, h, blurSharp);
+    const blurRadius = Math.max(1, Math.round(range));
+    const localMean = this.boxBlur(processedL, w, h, blurRadius);
+
+    const out = new ImageData(w, h);
+    const od = out.data;
+
+    for (let p = 0, j = 0; p < w * h; p++, j += 4) {
+      const diff = (localMean[p] - processedL[p]) + (mean - 0.5);
+      const occlusion = Math.max(0, diff) * strength;
+      let val = 1 - occlusion;
+      if (invert) val = 1 - val;
+      val = this.clamp(val, 0, 1);
+
       const g = Math.min(255, Math.max(0, val * 255));
       od[j] = od[j + 1] = od[j + 2] = g;
       od[j + 3] = 255;
@@ -152,7 +246,7 @@ export class PBRGenerator {
   }
 
   static generateRoughness(L, w, h, opts = {}) {
-    const { contrast = 1.0, low = 0.0, high = 1.0, offset = 0.0, invert = false } = opts;
+    const { strength = 1.0, low = 0.0, max = 1.0, offset = 0.0, invert = false } = opts;
     const L2 = new Float32Array(L.length);
     for (let i = 0; i < L.length; i++) L2[i] = L[i] * L[i];
 
@@ -171,30 +265,9 @@ export class PBRGenerator {
     const od = out.data;
 
     for (let p = 0, j = 0; p < w * h; p++, j += 4) {
-      let val = std[p] / maxStd;
+      let val = (std[p] / maxStd) * strength + offset;
       if (invert) val = 1 - val;
-      val += offset;
-      val = (val - 0.5) * contrast + 0.5;
-      val = low + val * (high - low);
-      val = this.clamp(val, 0, 1);
-
-      const g = Math.min(255, Math.max(0, val * 255));
-      od[j] = od[j + 1] = od[j + 2] = g;
-      od[j + 3] = 255;
-    }
-    return out;
-  }
-
-  static generateAO(L, w, h, opts = {}) {
-    const { amount = 3.0, contrast = 1.0 } = opts;
-    const local = this.boxBlur(L, w, h, 4);
-    const out = new ImageData(w, h);
-    const od = out.data;
-
-    for (let p = 0, j = 0; p < w * h; p++, j += 4) {
-      const occlusion = Math.max(0, local[p] - L[p]) * amount;
-      let val = 1 - occlusion;
-      val = (val - 0.5) * contrast + 0.5;
+      val = low + val * (max - low);
       val = this.clamp(val, 0, 1);
 
       const g = Math.min(255, Math.max(0, val * 255));

@@ -39,38 +39,65 @@ class App {
       },
       
       inputs: {
+        albedoBrightness: document.getElementById('albedoBrightness'),
         albedoContrast: document.getElementById('albedoContrast'),
         albedoSaturation: document.getElementById('albedoSaturation'),
-        albedoTint: document.getElementById('albedoTint'),
+        albedoHue: document.getElementById('albedoHue'),
+
         normalStrength: document.getElementById('normalStrength'),
-        normalIntensity: document.getElementById('normalIntensity'),
+        normalLevel: document.getElementById('normalLevel'),
+        normalBlurSharp: document.getElementById('normalBlurSharp'),
+        normalFilter: document.getElementById('normalFilter'),
+        normalInvertR: document.getElementById('normalInvertR'),
+        normalInvertG: document.getElementById('normalInvertG'),
+        normalInvertHeight: document.getElementById('normalInvertHeight'),
+        normalZRange: document.getElementById('normalZRange'),
+
         heightContrast: document.getElementById('heightContrast'),
-        heightOffset: document.getElementById('heightOffset'),
+        heightBlurSharp: document.getElementById('heightBlurSharp'),
+        heightInvert: document.getElementById('heightInvert'),
         dispSlider: document.getElementById('dispSlider'),
-        roughnessContrast: document.getElementById('roughnessContrast'),
+
+        aoStrength: document.getElementById('aoStrength'),
+        aoMean: document.getElementById('aoMean'),
+        aoRange: document.getElementById('aoRange'),
+        aoBlurSharp: document.getElementById('aoBlurSharp'),
+        aoInvert: document.getElementById('aoInvert'),
+
+        roughnessStrength: document.getElementById('roughnessStrength'),
         roughnessLow: document.getElementById('roughnessLow'),
         roughnessHigh: document.getElementById('roughnessHigh'),
         roughnessOffset: document.getElementById('roughnessOffset'),
         roughnessInvert: document.getElementById('roughnessInvert'),
-        aoAmount: document.getElementById('aoAmount'),
-        aoContrast: document.getElementById('aoContrast'),
+
         metallicSlider: document.getElementById('metallicSlider')
       },
       
       labels: {
+        albedoBrightnessVal: document.getElementById('albedoBrightnessVal'),
         albedoContrastVal: document.getElementById('albedoContrastVal'),
         albedoSaturationVal: document.getElementById('albedoSaturationVal'),
+        albedoHueVal: document.getElementById('albedoHueVal'),
+
         normalStrengthVal: document.getElementById('normalStrengthVal'),
-        normalIntensityVal: document.getElementById('normalIntensityVal'),
+        normalLevelVal: document.getElementById('normalLevelVal'),
+        normalBlurSharpVal: document.getElementById('normalBlurSharpVal'),
+        normalZRangeVal: document.getElementById('normalZRangeVal'),
+
         heightContrastVal: document.getElementById('heightContrastVal'),
-        heightOffsetVal: document.getElementById('heightOffsetVal'),
+        heightBlurSharpVal: document.getElementById('heightBlurSharpVal'),
         dispVal: document.getElementById('dispVal'),
-        roughnessContrastVal: document.getElementById('roughnessContrastVal'),
+
+        aoStrengthVal: document.getElementById('aoStrengthVal'),
+        aoMeanVal: document.getElementById('aoMeanVal'),
+        aoRangeVal: document.getElementById('aoRangeVal'),
+        aoBlurSharpVal: document.getElementById('aoBlurSharpVal'),
+
+        roughnessStrengthVal: document.getElementById('roughnessStrengthVal'),
         roughnessLowVal: document.getElementById('roughnessLowVal'),
         roughnessHighVal: document.getElementById('roughnessHighVal'),
         roughnessOffsetVal: document.getElementById('roughnessOffsetVal'),
-        aoAmountVal: document.getElementById('aoAmountVal'),
-        aoContrastVal: document.getElementById('aoContrastVal'),
+
         metallicVal: document.getElementById('metallicVal')
       }
     };
@@ -114,6 +141,10 @@ class App {
 
     Object.values(this.dom.inputs).forEach(input => {
       input.addEventListener('input', () => {
+        this.updateLabels();
+        this.processPBR();
+      });
+      input.addEventListener('change', () => {
         this.updateLabels();
         this.processPBR();
       });
@@ -250,39 +281,48 @@ class App {
   processPBR() {
     if (!this.cachedData) return;
     const { imageData, w, h, luminance } = this.cachedData;
-
-    const Lsmooth = PBRGenerator.boxBlur(luminance, w, h, 1);
-    const lowFreqBig = PBRGenerator.boxBlur(luminance, w, h, Math.max(8, Math.round(Math.min(w, h) * 0.15)));
-
     const inp = this.dom.inputs;
 
+    const lowFreqBig = PBRGenerator.boxBlur(luminance, w, h, Math.max(8, Math.round(Math.min(w, h) * 0.15)));
+
     const albedoData = PBRGenerator.generateAlbedo(imageData, lowFreqBig, w, h, {
+      brightness: parseFloat(inp.albedoBrightness.value),
       contrast: parseFloat(inp.albedoContrast.value),
       saturation: parseFloat(inp.albedoSaturation.value),
-      tint: inp.albedoTint.value
+      hue: parseFloat(inp.albedoHue.value)
     });
 
-    const normalData = PBRGenerator.generateNormal(Lsmooth, w, h, {
+    const normalData = PBRGenerator.generateNormal(luminance, w, h, {
       strength: parseFloat(inp.normalStrength.value),
-      intensity: parseFloat(inp.normalIntensity.value)
+      level: parseFloat(inp.normalLevel.value),
+      blurSharp: parseFloat(inp.normalBlurSharp.value),
+      filter: inp.normalFilter.value,
+      invertR: inp.normalInvertR.checked,
+      invertG: inp.normalInvertG.checked,
+      invertHeight: inp.normalInvertHeight.checked,
+      zRange: parseFloat(inp.normalZRange.value)
     });
 
     const heightData = PBRGenerator.generateHeight(luminance, w, h, {
       contrast: parseFloat(inp.heightContrast.value),
-      offset: parseFloat(inp.heightOffset.value)
+      blurSharp: parseFloat(inp.heightBlurSharp.value),
+      invert: inp.heightInvert.checked
     });
 
     const roughnessData = PBRGenerator.generateRoughness(luminance, w, h, {
-      contrast: parseFloat(inp.roughnessContrast.value),
+      strength: parseFloat(inp.roughnessStrength.value),
       low: parseFloat(inp.roughnessLow.value),
-      high: parseFloat(inp.roughnessHigh.value),
+      max: parseFloat(inp.roughnessHigh.value),
       offset: parseFloat(inp.roughnessOffset.value),
       invert: inp.roughnessInvert.checked
     });
 
     const aoData = PBRGenerator.generateAO(luminance, w, h, {
-      amount: parseFloat(inp.aoAmount.value),
-      contrast: parseFloat(inp.aoContrast.value)
+      strength: parseFloat(inp.aoStrength.value),
+      mean: parseFloat(inp.aoMean.value),
+      range: parseFloat(inp.aoRange.value),
+      blurSharp: parseFloat(inp.aoBlurSharp.value),
+      invert: inp.aoInvert.checked
     });
 
     const metallicVal = parseFloat(inp.metallicSlider.value);
@@ -310,19 +350,30 @@ class App {
     const inp = this.dom.inputs;
     const lbl = this.dom.labels;
 
+    lbl.albedoBrightnessVal.textContent = parseFloat(inp.albedoBrightness.value).toFixed(2);
     lbl.albedoContrastVal.textContent = parseFloat(inp.albedoContrast.value).toFixed(2);
     lbl.albedoSaturationVal.textContent = parseFloat(inp.albedoSaturation.value).toFixed(2);
+    lbl.albedoHueVal.textContent = `${inp.albedoHue.value}°`;
+
     lbl.normalStrengthVal.textContent = parseFloat(inp.normalStrength.value).toFixed(1);
-    lbl.normalIntensityVal.textContent = parseFloat(inp.normalIntensity.value).toFixed(1);
+    lbl.normalLevelVal.textContent = parseFloat(inp.normalLevel.value).toFixed(1);
+    lbl.normalBlurSharpVal.textContent = inp.normalBlurSharp.value;
+    lbl.normalZRangeVal.textContent = parseFloat(inp.normalZRange.value).toFixed(2);
+
     lbl.heightContrastVal.textContent = parseFloat(inp.heightContrast.value).toFixed(1);
-    lbl.heightOffsetVal.textContent = parseFloat(inp.heightOffset.value).toFixed(2);
+    lbl.heightBlurSharpVal.textContent = inp.heightBlurSharp.value;
     lbl.dispVal.textContent = parseFloat(inp.dispSlider.value).toFixed(3);
-    lbl.roughnessContrastVal.textContent = parseFloat(inp.roughnessContrast.value).toFixed(1);
+
+    lbl.aoStrengthVal.textContent = parseFloat(inp.aoStrength.value).toFixed(1);
+    lbl.aoMeanVal.textContent = parseFloat(inp.aoMean.value).toFixed(2);
+    lbl.aoRangeVal.textContent = inp.aoRange.value;
+    lbl.aoBlurSharpVal.textContent = inp.aoBlurSharp.value;
+
+    lbl.roughnessStrengthVal.textContent = parseFloat(inp.roughnessStrength.value).toFixed(1);
     lbl.roughnessLowVal.textContent = parseFloat(inp.roughnessLow.value).toFixed(2);
     lbl.roughnessHighVal.textContent = parseFloat(inp.roughnessHigh.value).toFixed(2);
     lbl.roughnessOffsetVal.textContent = parseFloat(inp.roughnessOffset.value).toFixed(2);
-    lbl.aoAmountVal.textContent = parseFloat(inp.aoAmount.value).toFixed(1);
-    lbl.aoContrastVal.textContent = parseFloat(inp.aoContrast.value).toFixed(1);
+
     lbl.metallicVal.textContent = parseFloat(inp.metallicSlider.value).toFixed(2);
   }
 
@@ -368,22 +419,18 @@ class App {
 
   async loadHDRList() {
     try {
-      // Lee el archivo JSON
       const response = await fetch('assets/environment/lista.json');
       const hdris = await response.json();
       
-      // Limpia el selector
       this.dom.hdriSelect.innerHTML = '';
       
-      // Crea las opciones dinámicamente
-      hdris.forEach((hdri, index) => {
+      hdris.forEach((hdri) => {
         const opt = document.createElement('option');
         opt.value = hdri.file;
         opt.textContent = hdri.name;
         this.dom.hdriSelect.appendChild(opt);
       });
 
-      // Carga el primero por defecto si el visor ya está inicializado
       if (this.viewer3D.initialized && hdris.length > 0) {
         this.viewer3D.loadHDRI(hdris[0].file);
       }
