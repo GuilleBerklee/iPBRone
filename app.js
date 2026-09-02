@@ -1,6 +1,6 @@
 import { PBRGenerator } from './pbr-generator.js';
 import { MaterialViewer3D } from './viewer3d.js';
-import { TilingEngine, CloneStampTool} from './tiling.js';
+import { SeamlessEngine, CloneStampTool } from './tiling.js';
 
 class App {
   constructor() {
@@ -9,49 +9,65 @@ class App {
     this.isTorchOn = false;
     this.cachedData = null;
     this.activeLayer = 'albedo';
-    this.loadedImage = null; // Guardará la foto original cargada/capturada
-    this.activeEditTab = 'crop'; // 'crop', 'tiling', 'clone'
-    this.cloneTool = null;
-    // Estado del recuadro de recorte (en coordenadas relativas 0 a 1)
-    this.cropState = {
-      x: 0.1,
-      y: 0.1,
-      size: 0.8,
-      isDragging: false,
-      isResizing: false,
-      startX: 0,
-      startY: 0,
-      initialCropX: 0,
-      initialCropY: 0,
-      initialCropSize: 0
-    };
-    
+    this.loadedImage = null;
+
+    // Canvases intermedios
+    this.croppedBaseCanvas = document.createElement('canvas');
+    this.finalTileCanvas = document.createElement('canvas');
+
+    this.cropState = { x: 0.1, y: 0.1, size: 0.8, isDragging: false, isResizing: false };
     this.viewer3D = new MaterialViewer3D('canvas3d-container');
 
     this.dom = {
-      video: document.getElementById('video'),
-      placeholder: document.getElementById('placeholder'),
+      // Vistas
+      captureView: document.getElementById('captureView'),
+      cropView: document.getElementById('cropView'),
+      tilingView: document.getElementById('tilingView'),
+      resultsView: document.getElementById('results'),
+
+      // Botones
+      startCameraBtn: document.getElementById('startCameraBtn'),
       shutterBtn: document.getElementById('shutterBtn'),
       torchBtn: document.getElementById('torchBtn'),
       galleryBtn: document.getElementById('galleryBtn'),
       fileInput: document.getElementById('fileInput'),
-      startCameraBtn: document.getElementById('startCameraBtn'),
-      statusEl: document.getElementById('status'),
-      captureView: document.getElementById('captureView'),
-      cropView: document.getElementById('cropView'),
-      cropCanvas: document.getElementById('cropCanvas'),
       confirmCropBtn: document.getElementById('confirmCropBtn'),
       cancelCropBtn: document.getElementById('cancelCropBtn'),
-      resultsView: document.getElementById('results'),
+      confirmTilingBtn: document.getElementById('confirmTilingBtn'),
+      backToCropBtn: document.getElementById('backToCropBtn'),
       retakeBtn: document.getElementById('retakeBtn'),
       downloadAllBtn: document.getElementById('downloadAllBtn'),
       downloadCurrentBtn: document.getElementById('downloadCurrentBtn'),
+
+      // Canvases y Elementos Tiling
+      cropCanvas: document.getElementById('cropCanvas'),
+      tilingCanvas: document.getElementById('tilingCanvas'),
+      tilingGridPreview: document.getElementById('tilingGridPreview'),
       resSelect: document.getElementById('resSelect'),
+
+      // Sliders Tiling
+      enableTiling: document.getElementById('enableTiling'),
+      bleedSlider: document.getElementById('bleedSlider'),
+      bleedVal: document.getElementById('bleedVal'),
+      tilingBlurSlider: document.getElementById('tilingBlurSlider'),
+      tilingBlurVal: document.getElementById('tilingBlurVal'),
+
+      // Clone Stamp
+      setCloneSourceBtn: document.getElementById('setCloneSourceBtn'),
+      stampSizeSlider: document.getElementById('stampSizeSlider'),
+      stampSizeVal: document.getElementById('stampSizeVal'),
+      stampHardnessSlider: document.getElementById('stampHardnessSlider'),
+      stampHardnessVal: document.getElementById('stampHardnessVal'),
+
+      // Elementos PBR & 3D
+      video: document.getElementById('video'),
+      placeholder: document.getElementById('placeholder'),
+      statusEl: document.getElementById('status'),
       currentLayerTitle: document.getElementById('currentLayerTitle'),
       hdriSelect: document.getElementById('hdriSelect'),
       hdriRotation: document.getElementById('hdriRotation'),
       hdriRotVal: document.getElementById('hdriRotVal'),
-      
+
       canvases: {
         albedo: document.getElementById('albedoCanvas'),
         normal: document.getElementById('normalCanvas'),
@@ -60,7 +76,6 @@ class App {
         ao: document.getElementById('aoCanvas'),
         metallic: document.getElementById('metallicCanvas')
       },
-      
       inputs: {
         albedoBrightness: document.getElementById('albedoBrightness'),
         albedoContrast: document.getElementById('albedoContrast'),
@@ -95,7 +110,6 @@ class App {
 
         metallicSlider: document.getElementById('metallicSlider')
       },
-      
       labels: {
         albedoBrightnessVal: document.getElementById('albedoBrightnessVal'),
         albedoContrastVal: document.getElementById('albedoContrastVal'),
@@ -130,32 +144,68 @@ class App {
     this.bindEvents();
     this.initCropperEvents();
     this.loadHDRList();
-    if (!window.isSecureContext && location.hostname !== 'localhost') {
-      const banner = document.getElementById('secureBanner');
-      if (banner) banner.style.display = 'block';
-    }
+
+    // Inicializar clonador
+    this.cloneTool = new CloneStampTool(this.dom.tilingCanvas, (data) => {
+      if (data.event === 'source-set') {
+        this.dom.setCloneSourceBtn.textContent = '📍 Origen fijado';
+        this.dom.setCloneSourceBtn.style.color = '#5cdb95';
+      } else {
+        this.updateTilingProcess();
+      }
+    });
   }
 
   bindEvents() {
+    // Etapa 1
     this.dom.startCameraBtn.addEventListener('click', () => this.startCamera());
     this.dom.shutterBtn.addEventListener('click', () => this.capturePhoto());
     this.dom.torchBtn.addEventListener('click', () => this.toggleTorch());
     this.dom.galleryBtn.addEventListener('click', () => this.dom.fileInput.click());
     this.dom.fileInput.addEventListener('change', (e) => this.handleGallerySelect(e));
 
+    // Etapa 2 -> Etapa 3
     this.dom.confirmCropBtn.addEventListener('click', () => this.confirmCrop());
     this.dom.cancelCropBtn.addEventListener('click', () => this.showCaptureView());
 
+    // Etapa 3 -> Etapa 4
+    this.dom.confirmTilingBtn.addEventListener('click', () => this.confirmTiling());
+    this.dom.backToCropBtn.addEventListener('click', () => this.openCropView(this.loadedImage));
+
+    // Tiling Controls
+    this.dom.enableTiling.addEventListener('change', () => this.updateTilingProcess());
+    this.dom.bleedSlider.addEventListener('input', (e) => {
+      this.dom.bleedVal.textContent = `${Math.round(e.target.value * 100)}%`;
+      this.updateTilingProcess();
+    });
+    this.dom.tilingBlurSlider.addEventListener('input', (e) => {
+      this.dom.tilingBlurVal.textContent = `${e.target.value}px`;
+      this.updateTilingProcess();
+    });
+
+    // Stamp controls
+    this.dom.setCloneSourceBtn.addEventListener('click', () => {
+      this.cloneTool.isSettingSource = true;
+      this.dom.setCloneSourceBtn.textContent = '🎯 Toca el lienzo para fijar origen';
+      this.dom.setCloneSourceBtn.style.color = '#e8a33d';
+    });
+    this.dom.stampSizeSlider.addEventListener('input', (e) => {
+      this.dom.stampSizeVal.textContent = `${e.target.value}px`;
+      this.cloneTool.brushSize = parseInt(e.target.value, 10);
+    });
+    this.dom.stampHardnessSlider.addEventListener('input', (e) => {
+      this.dom.stampHardnessVal.textContent = e.target.value;
+      this.cloneTool.brushHardness = parseFloat(e.target.value);
+    });
+
+    // Etapa 4 & Resultados
     this.dom.retakeBtn.addEventListener('click', () => this.showCaptureView());
     this.dom.downloadAllBtn.addEventListener('click', () => this.downloadZip());
     this.dom.downloadCurrentBtn.addEventListener('click', () => {
       this.downloadSingleCanvas(this.dom.canvases[this.activeLayer], `${this.activeLayer}.png`);
     });
 
-    this.dom.hdriSelect.addEventListener('change', (e) => {
-      this.viewer3D.loadHDRI(e.target.value);
-    });
-
+    this.dom.hdriSelect.addEventListener('change', (e) => this.viewer3D.loadHDRI(e.target.value));
     this.dom.hdriRotation.addEventListener('input', (e) => {
       const deg = parseFloat(e.target.value);
       this.dom.hdriRotVal.textContent = `${deg}°`;
@@ -163,21 +213,12 @@ class App {
     });
 
     document.querySelectorAll('.tab-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const layer = e.target.dataset.layer;
-        this.setActiveLayer(layer);
-      });
+      btn.addEventListener('click', (e) => this.setActiveLayer(e.target.dataset.layer));
     });
 
     Object.values(this.dom.inputs).forEach(input => {
-      input.addEventListener('input', () => {
-        this.updateLabels();
-        this.processPBR();
-      });
-      input.addEventListener('change', () => {
-        this.updateLabels();
-        this.processPBR();
-      });
+      input.addEventListener('input', () => { this.updateLabels(); this.processPBR(); });
+      input.addEventListener('change', () => { this.updateLabels(); this.processPBR(); });
     });
 
     document.querySelectorAll('.mesh-btn').forEach(btn => {
@@ -187,78 +228,25 @@ class App {
         this.viewer3D.setMeshType(e.target.dataset.mesh);
       });
     });
-  
-    const tabCrop = document.getElementById('tabCrop');
-    const tabTiling = document.getElementById('tabTiling');
-    const tabClone = document.getElementById('tabClone');
-    const panelTiling = document.getElementById('panelTiling');
-    const panelClone = document.getElementById('panelClone');
-
-    const setTab = (tab) => {
-      this.activeEditTab = tab;
-      tabCrop.classList.toggle('active', tab === 'crop');
-      tabTiling.classList.toggle('active', tab === 'tiling');
-      tabClone.classList.toggle('active', tab === 'clone');
-
-      panelTiling.style.display = tab === 'tiling' ? 'block' : 'none';
-      panelClone.style.display = tab === 'clone' ? 'block' : 'none';
-      this.renderCropCanvas();
-    };
-
-    tabCrop.addEventListener('click', () => setTab('crop'));
-    tabTiling.addEventListener('click', () => setTab('tiling'));
-    tabClone.addEventListener('click', () => setTab('clone'));
-
-    // Sliders de Tiling
-    document.getElementById('bleedSlider').addEventListener('input', (e) => {
-      document.getElementById('bleedVal').textContent = `${Math.round(e.target.value * 100)}%`;
-    });
-    document.getElementById('tilingBlurSlider').addEventListener('input', (e) => {
-      document.getElementById('tilingBlurVal').textContent = `${e.target.value}px`;
-    });
-
-    // Tampón de clonar
-    const cloneBtn = document.getElementById('setCloneSourceBtn');
-    cloneBtn.addEventListener('click', () => {
-      if (this.cloneTool) {
-        this.cloneTool.isSettingSource = true;
-        cloneBtn.textContent = '🎯 Haz clic en la imagen para origen';
-      }
-    });
-
-    document.getElementById('stampSizeSlider').addEventListener('input', (e) => {
-      document.getElementById('stampSizeVal').textContent = `${e.target.value}px`;
-      if (this.cloneTool) this.cloneTool.brushSize = parseInt(e.target.value, 10);
-    });
-    document.getElementById('stampHardnessSlider').addEventListener('input', (e) => {
-      document.getElementById('stampHardnessVal').textContent = e.target.value;
-      if (this.cloneTool) this.cloneTool.brushHardness = parseFloat(e.target.value);
-    });
   }
 
+  // --- PASO 1: Captura ---
   async startCamera() {
-    if (!navigator.mediaDevices?.getUserMedia) {
-      this.dom.statusEl.textContent = 'Cámara no soportada en este navegador.';
-      return;
-    }
-
+    if (!navigator.mediaDevices?.getUserMedia) return;
     try {
       this.dom.statusEl.textContent = 'Iniciando cámara…';
       this.stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: 'environment' }, width: { ideal: 3840 }, height: { ideal: 2160 } }
       });
-
       this.dom.video.srcObject = this.stream;
       await this.dom.video.play();
-
       this.track = this.stream.getVideoTracks()[0];
-      const capabilities = this.track.getCapabilities ? this.track.getCapabilities() : {};
-      this.dom.torchBtn.disabled = !capabilities.torch;
-
+      const caps = this.track.getCapabilities ? this.track.getCapabilities() : {};
+      this.dom.torchBtn.disabled = !caps.torch;
       this.dom.placeholder.style.display = 'none';
       this.dom.shutterBtn.disabled = false;
       this.dom.statusEl.textContent = 'Cámara activa';
-    } catch (err) {
+    } catch {
       this.dom.statusEl.textContent = 'Error al acceder a la cámara.';
     }
   }
@@ -269,10 +257,7 @@ class App {
       this.isTorchOn = !this.isTorchOn;
       await this.track.applyConstraints({ advanced: [{ torch: this.isTorchOn }] });
       this.dom.torchBtn.classList.toggle('active', this.isTorchOn);
-    } catch {
-      this.isTorchOn = false;
-      this.dom.torchBtn.classList.remove('active');
-    }
+    } catch { this.isTorchOn = false; }
   }
 
   stopCamera() {
@@ -285,7 +270,6 @@ class App {
   }
 
   async capturePhoto() {
-    // Intentar captura con alta resolución mediante ImageCapture API
     if (this.track && 'ImageCapture' in window) {
       try {
         const imageCapture = new ImageCapture(this.track);
@@ -294,57 +278,44 @@ class App {
         this.stopCamera();
         this.openCropView(img);
         return;
-      } catch (e) {
-        console.warn('ImageCapture no disponible o falló, usando captura de vídeo:', e);
-      }
+      } catch (e) { console.warn('Fallback a captura de vídeo canvas:', e); }
     }
 
-    // Fallback: Captura del frame del vídeo
     const vw = this.dom.video.videoWidth;
     const vh = this.dom.video.videoHeight;
     if (!vw || !vh) return;
 
     const tmp = document.createElement('canvas');
-    tmp.width = vw;
-    tmp.height = vh;
-    const ctx = tmp.getContext('2d');
-    ctx.drawImage(this.dom.video, 0, 0, vw, vh);
+    tmp.width = vw; tmp.height = vh;
+    tmp.getContext('2d').drawImage(this.dom.video, 0, 0, vw, vh);
 
     const img = new Image();
     img.src = tmp.toDataURL('image/png');
-    img.onload = () => {
-      this.stopCamera();
-      this.openCropView(img);
-    };
+    img.onload = () => { this.stopCamera(); this.openCropView(img); };
   }
 
   handleGallerySelect(e) {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = (evt) => {
       const img = new Image();
-      img.onload = () => {
-        this.stopCamera();
-        this.openCropView(img);
-      };
+      img.onload = () => { this.stopCamera(); this.openCropView(img); };
       img.src = evt.target.result;
     };
     reader.readAsDataURL(file);
     e.target.value = '';
   }
 
+  // --- PASO 2: Crop / Encuadre ---
   openCropView(image) {
     this.loadedImage = image;
     this.dom.captureView.style.display = 'none';
+    this.dom.tilingView.style.display = 'none';
     this.dom.resultsView.style.display = 'none';
     this.dom.cropView.style.display = 'block';
 
-    this.cropState.x = 0.1;
-    this.cropState.y = 0.1;
-    this.cropState.size = 0.8;
-
+    this.cropState = { x: 0.1, y: 0.1, size: 0.8 };
     this.renderCropCanvas();
   }
 
@@ -352,8 +323,8 @@ class App {
     if (!this.loadedImage) return;
     const canvas = this.dom.cropCanvas;
     const ctx = canvas.getContext('2d');
-
     const rect = canvas.getBoundingClientRect();
+
     canvas.width = rect.width * window.devicePixelRatio;
     canvas.height = rect.height * window.devicePixelRatio;
 
@@ -363,24 +334,18 @@ class App {
 
     const imgW = this.loadedImage.width;
     const imgH = this.loadedImage.height;
-
-    // Calcular escala para ajustar imagen en canvas manteniendo aspect ratio
     const scale = Math.min(cw / imgW, ch / imgH);
     const drawW = imgW * scale;
     const drawH = imgH * scale;
     const offsetX = (cw - drawW) / 2;
     const offsetY = (ch - drawH) / 2;
 
-    this.cropLayout = { scale, drawW, drawH, offsetX, offsetY, cw, ch };
+    this.cropLayout = { scale, drawW, drawH, offsetX, offsetY };
 
-    // Dibujar imagen completa
     ctx.drawImage(this.loadedImage, offsetX, offsetY, drawW, drawH);
-
-    // Oscurecer área fuera del crop
     ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
     ctx.fillRect(0, 0, cw, ch);
 
-    // Dibujar área seleccionada clara
     const cropPixelX = offsetX + this.cropState.x * drawW;
     const cropPixelY = offsetY + this.cropState.y * drawH;
     const cropPixelSize = this.cropState.size * Math.min(drawW, drawH);
@@ -392,12 +357,10 @@ class App {
     ctx.drawImage(this.loadedImage, offsetX, offsetY, drawW, drawH);
     ctx.restore();
 
-    // Borde de selección
     ctx.strokeStyle = '#e8a33d';
     ctx.lineWidth = 3 * window.devicePixelRatio;
     ctx.strokeRect(cropPixelX, cropPixelY, cropPixelSize, cropPixelSize);
 
-    // Tirador para redimensionar (esquina inferior derecha)
     const handleSize = 16 * window.devicePixelRatio;
     ctx.fillStyle = '#e8a33d';
     ctx.fillRect(cropPixelX + cropPixelSize - handleSize / 2, cropPixelY + cropPixelSize - handleSize / 2, handleSize, handleSize);
@@ -405,15 +368,11 @@ class App {
 
   initCropperEvents() {
     const canvas = this.dom.cropCanvas;
-
     const getPos = (e) => {
       const rect = canvas.getBoundingClientRect();
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-      return {
-        x: (clientX - rect.left) * window.devicePixelRatio,
-        y: (clientY - rect.top) * window.devicePixelRatio
-      };
+      return { x: (clientX - rect.left) * window.devicePixelRatio, y: (clientY - rect.top) * window.devicePixelRatio };
     };
 
     const startDrag = (e) => {
@@ -427,16 +386,9 @@ class App {
       const cropPixelSize = this.cropState.size * minDim;
       const handleSize = 24 * window.devicePixelRatio;
 
-      // Comprobar tirador esquina inferior derecha
-      if (
-        Math.abs(pos.x - (cropPixelX + cropPixelSize)) < handleSize &&
-        Math.abs(pos.y - (cropPixelY + cropPixelSize)) < handleSize
-      ) {
+      if (Math.abs(pos.x - (cropPixelX + cropPixelSize)) < handleSize && Math.abs(pos.y - (cropPixelY + cropPixelSize)) < handleSize) {
         this.cropState.isResizing = true;
-      } else if (
-        pos.x >= cropPixelX && pos.x <= cropPixelX + cropPixelSize &&
-        pos.y >= cropPixelY && pos.y <= cropPixelY + cropPixelSize
-      ) {
+      } else if (pos.x >= cropPixelX && pos.x <= cropPixelX + cropPixelSize && pos.y >= cropPixelY && pos.y <= cropPixelY + cropPixelSize) {
         this.cropState.isDragging = true;
       }
 
@@ -460,38 +412,23 @@ class App {
       const dy = (pos.y - this.cropState.startY) / drawH;
 
       if (this.cropState.isDragging) {
-        let newX = this.cropState.initialCropX + dx;
-        let newY = this.cropState.initialCropY + dy;
-
         const maxCropX = 1 - (this.cropState.size * minDim) / drawW;
         const maxCropY = 1 - (this.cropState.size * minDim) / drawH;
-
-        this.cropState.x = Math.max(0, Math.min(maxCropX, newX));
-        this.cropState.y = Math.max(0, Math.min(maxCropY, newY));
+        this.cropState.x = Math.max(0, Math.min(maxCropX, this.cropState.initialCropX + dx));
+        this.cropState.y = Math.max(0, Math.min(maxCropY, this.cropState.initialCropY + dy));
       } else if (this.cropState.isResizing) {
         const dSize = (pos.x - this.cropState.startX) / minDim;
-        let newSize = this.cropState.initialCropSize + dSize;
-
-        const maxSize = Math.min(
-          (drawW - this.cropState.x * drawW) / minDim,
-          (drawH - this.cropState.y * drawH) / minDim
-        );
-
-        this.cropState.size = Math.max(0.1, Math.min(maxSize, newSize));
+        const maxSize = Math.min((drawW - this.cropState.x * drawW) / minDim, (drawH - this.cropState.y * drawH) / minDim);
+        this.cropState.size = Math.max(0.1, Math.min(maxSize, this.cropState.initialCropSize + dSize));
       }
-
       this.renderCropCanvas();
     };
 
-    const endDrag = () => {
-      this.cropState.isDragging = false;
-      this.cropState.isResizing = false;
-    };
+    const endDrag = () => { this.cropState.isDragging = false; this.cropState.isResizing = false; };
 
     canvas.addEventListener('mousedown', startDrag);
     canvas.addEventListener('mousemove', moveDrag);
     window.addEventListener('mouseup', endDrag);
-
     canvas.addEventListener('touchstart', startDrag, { passive: false });
     canvas.addEventListener('touchmove', moveDrag, { passive: false });
     window.addEventListener('touchend', endDrag);
@@ -514,29 +451,64 @@ class App {
       outSize = Math.min(parseInt(resSetting, 10), outSize);
     }
 
-    const tmp = document.createElement('canvas');
-    tmp.width = outSize;
-    tmp.height = outSize;
-    const ctx = tmp.getContext('2d');
+    this.croppedBaseCanvas.width = outSize;
+    this.croppedBaseCanvas.height = outSize;
+    const ctx = this.croppedBaseCanvas.getContext('2d');
     ctx.drawImage(this.loadedImage, sourceX, sourceY, sourceSize, sourceSize, 0, 0, outSize, outSize);
 
-    // --- APLICAR SEAMLESS TILING SI ESTÁ ACTIVO ---
-    const isTilingEnabled = document.getElementById('enableTiling').checked;
-    if (isTilingEnabled) {
-      const bleed = parseFloat(document.getElementById('bleedSlider').value);
-      const blur = parseInt(document.getElementById('tilingBlurSlider').value, 10);
-      TilingEngine.makeSeamless(tmp, bleed, blur);
+    this.openTilingView();
+  }
+
+  // --- PASO 3: Tiling & Tampón ---
+  openTilingView() {
+    this.dom.cropView.style.display = 'none';
+    this.dom.tilingView.style.display = 'block';
+
+    // Inicializar lienzo de trabajo con la imagen recortada
+    const tCanvas = this.dom.tilingCanvas;
+    tCanvas.width = this.croppedBaseCanvas.width;
+    tCanvas.height = this.croppedBaseCanvas.height;
+    tCanvas.getContext('2d').drawImage(this.croppedBaseCanvas, 0, 0);
+
+    this.cloneTool.sourcePoint = null;
+    this.dom.setCloneSourceBtn.textContent = '📍 Fijar Origen';
+    this.dom.setCloneSourceBtn.style.color = '';
+
+    this.updateTilingProcess();
+  }
+
+  updateTilingProcess() {
+    const isEnabled = this.dom.enableTiling.checked;
+    const bleed = parseFloat(this.dom.bleedSlider.value);
+    const blur = parseInt(this.dom.tilingBlurSlider.value, 10);
+
+    if (isEnabled) {
+      SeamlessEngine.process(this.dom.tilingCanvas, this.finalTileCanvas, bleed, blur);
+    } else {
+      this.finalTileCanvas.width = this.dom.tilingCanvas.width;
+      this.finalTileCanvas.height = this.dom.tilingCanvas.height;
+      this.finalTileCanvas.getContext('2d').drawImage(this.dom.tilingCanvas, 0, 0);
     }
 
-    const imageData = ctx.getImageData(0, 0, outSize, outSize);
+    // Actualizar fondo en mosaico (3x3 grid preview)
+    const dataUrl = this.finalTileCanvas.toDataURL('image/png');
+    this.dom.tilingGridPreview.style.backgroundImage = `url("${dataUrl}")`;
+  }
+
+  confirmTiling() {
+    const w = this.finalTileCanvas.width;
+    const h = this.finalTileCanvas.height;
+    const ctx = this.finalTileCanvas.getContext('2d');
+    const imageData = ctx.getImageData(0, 0, w, h);
+
     this.cachedData = {
       imageData,
-      w: outSize,
-      h: outSize,
+      w,
+      h,
       luminance: PBRGenerator.computeLuminance(imageData)
     };
 
-    this.dom.cropView.style.display = 'none';
+    this.dom.tilingView.style.display = 'none';
     this.dom.resultsView.style.display = 'block';
 
     setTimeout(() => {
@@ -548,6 +520,7 @@ class App {
     }, 50);
   }
 
+  // --- PASO 4: Generación PBR & 3D ---
   processPBR() {
     if (!this.cachedData) return;
     const { imageData, w, h, luminance } = this.cachedData;
@@ -612,34 +585,25 @@ class App {
   drawToCanvas(canvas, imageData) {
     canvas.width = imageData.width;
     canvas.height = imageData.height;
-    const ctx = canvas.getContext('2d');
-    ctx.putImageData(imageData, 0, 0);
+    canvas.getContext('2d').putImageData(imageData, 0, 0);
   }
 
   setActiveLayer(layerKey) {
     this.activeLayer = layerKey;
-
-    document.querySelectorAll('.tab-btn').forEach(b => {
-      b.classList.toggle('active', b.dataset.layer === layerKey);
-    });
-
-    Object.keys(this.dom.canvases).forEach(k => {
-      this.dom.canvases[k].classList.toggle('active', k === layerKey);
-    });
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.layer === layerKey));
+    Object.keys(this.dom.canvases).forEach(k => this.dom.canvases[k].classList.toggle('active', k === layerKey));
 
     const titles = {
       albedo: 'Mapa Albedo / Color',
       normal: 'Mapa de Normales',
-      roughness: 'Mapa de Rugosidad (Roughness)',
-      height: 'Mapa de Altura (Height / Displacement)',
-      ao: 'Oclusión Ambiental (AO)',
+      roughness: 'Mapa de Rugosidad',
+      height: 'Mapa de Altura',
+      ao: 'Oclusión Ambiental',
       metallic: 'Mapa Metálico'
     };
     this.dom.currentLayerTitle.textContent = titles[layerKey] || layerKey;
 
-    document.querySelectorAll('.layer-control-group').forEach(group => {
-      group.style.display = 'none';
-    });
+    document.querySelectorAll('.layer-control-group').forEach(g => g.style.display = 'none');
     const activeCtrl = document.getElementById(`ctrl-${layerKey}`);
     if (activeCtrl) activeCtrl.style.display = 'block';
   }
@@ -677,6 +641,7 @@ class App {
 
   showCaptureView() {
     this.dom.cropView.style.display = 'none';
+    this.dom.tilingView.style.display = 'none';
     this.dom.resultsView.style.display = 'none';
     this.dom.captureView.style.display = 'block';
     this.dom.placeholder.style.display = 'flex';
@@ -720,22 +685,18 @@ class App {
     try {
       const response = await fetch('assets/environment/lista.json');
       const hdris = await response.json();
-      
       this.dom.hdriSelect.innerHTML = '';
-      
       hdris.forEach((hdri) => {
         const opt = document.createElement('option');
         opt.value = hdri.file;
         opt.textContent = hdri.name;
         this.dom.hdriSelect.appendChild(opt);
       });
-
       if (this.viewer3D.initialized && hdris.length > 0) {
         this.viewer3D.loadHDRI(hdris[0].file);
       }
-    } catch (err) {
-      console.error("No se pudo cargar la lista de HDRI:", err);
-      this.dom.hdriSelect.innerHTML = '<option value="">Error al cargar entornos</option>';
+    } catch {
+      this.dom.hdriSelect.innerHTML = '<option value="">Sin entornos disponibles</option>';
     }
   }
 }

@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#101012">
   <title>Escáner de materiales PBR</title>
   
@@ -30,35 +29,28 @@
     <p>Captura una superficie y genera un set de texturas PBR completas.</p>
   </header>
 
-  <div id="secureBanner" class="banner" style="display:none;">
-    <strong>Necesita HTTPS</strong>
-    Esta página debe servirse por HTTPS (o localhost) para acceder a la cámara.
-  </div>
-
-  <!-- Vista 1: Captura / Selección -->
+  <!-- ETAPA 1: Captura -->
   <div id="captureView">
     <div class="hint">
-      <b>Antes de capturar:</b> Activa la linterna y coloca el teléfono paralelo a la superficie a unos 15–20&nbsp;cm, o sube una imagen existente.
+      <b>Paso 1:</b> Toma una foto o selecciona una imagen de tu galería.
     </div>
 
     <div class="viewfinder">
       <video id="video" autoplay playsinline muted></video>
       <div id="placeholder" class="placeholder">Toca «Activar cámara» para empezar</div>
-      <div class="guide">
-        <span class="tl"></span><span class="tr"></span><span class="bl"></span><span class="br"></span>
-      </div>
+      <div class="guide"><span class="tl"></span><span class="tr"></span><span class="bl"></span><span class="br"></span></div>
     </div>
 
     <div class="capture-row">
-      <button id="torchBtn" class="btn-torch" disabled aria-label="Activar linterna">
+      <button id="torchBtn" class="btn-torch" disabled aria-label="Linterna">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="currentColor"/></svg>
       </button>
 
-      <button id="shutterBtn" class="shutter" disabled aria-label="Capturar foto">
+      <button id="shutterBtn" class="shutter" disabled aria-label="Capturar">
         <svg viewBox="0 0 24 24" fill="none" stroke="#241a06" stroke-width="2"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13.5" r="3.2"/></svg>
       </button>
 
-      <button id="galleryBtn" class="btn-torch" aria-label="Abrir Galería" title="Galería">
+      <button id="galleryBtn" class="btn-torch" aria-label="Galería">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
       </button>
       <input type="file" id="fileInput" accept="image/*" style="display:none;">
@@ -70,14 +62,14 @@
     </div>
   </div>
 
-<!-- Vista 2: Ajuste de Recorte y Edición Seamless / Tampón -->
+  <!-- ETAPA 2: Encajado / Cropping -->
   <div id="cropView" style="display:none;">
     <div class="hint">
-      <b>Ajuste y Edición:</b> Recorta la zona, activa el patrón infinito o usa el tampón para corregir imperfecciones.
+      <b>Paso 2: Encuadre:</b> Arrastra para seleccionar el área y elige la resolución deseada.
     </div>
 
-    <div class="resolution-selector" style="flex-wrap: wrap; gap: 8px;">
-      <label for="resSelect">Resolución:</label>
+    <div class="resolution-selector" style="margin-bottom: 12px;">
+      <label for="resSelect">Resolución de salida:</label>
       <select id="resSelect">
         <option value="512">512 × 512 px</option>
         <option value="1024" selected>1024 × 1024 px</option>
@@ -86,55 +78,75 @@
       </select>
     </div>
 
-    <!-- Pestañas/Herramientas de Edición -->
-    <div class="layer-tabs" style="margin-top: 10px;">
-      <button id="tabCrop" class="tab-btn active">Recorte</button>
-      <button id="tabTiling" class="tab-btn">Seamless Tiling</button>
-      <button id="tabClone" class="tab-btn">Tampón Clonar</button>
-    </div>
-
-    <!-- Panel Tiling -->
-    <div id="panelTiling" class="controls-panel" style="display:none; margin-bottom:10px;">
-      <div class="control checkbox">
-        <input type="checkbox" id="enableTiling">
-        <label for="enableTiling">Activar Patrón Seamless (Sin costuras)</label>
-      </div>
-      <div class="control">
-        <label><span>Bleed / Solapamiento</span><span id="bleedVal">15%</span></label>
-        <input type="range" id="bleedSlider" min="0" max="0.35" step="0.01" value="0.15">
-      </div>
-      <div class="control">
-        <label><span>Blur / Feathet (Suavizado)</span><span id="tilingBlurVal">10px</span></label>
-        <input type="range" id="tilingBlurSlider" min="0" max="40" step="1" value="10">
-      </div>
-    </div>
-
-    <!-- Panel Tampón Clonar -->
-    <div id="panelClone" class="controls-panel" style="display:none; margin-bottom:10px;">
-      <div style="display:flex; gap:8px; margin-bottom:8px;">
-        <button id="setCloneSourceBtn" class="ghost" style="flex:1;">📍 Definir Origen</button>
-      </div>
-      <div class="control">
-        <label><span>Tamaño Pincel</span><span id="stampSizeVal">30px</span></label>
-        <input type="range" id="stampSizeSlider" min="5" max="100" step="1" value="30">
-      </div>
-      <div class="control">
-        <label><span>Dureza de Borde</span><span id="stampHardnessVal">0.5</span></label>
-        <input type="range" id="stampHardnessSlider" min="0" max="1" step="0.05" value="0.5">
-      </div>
-    </div>
-
     <div class="crop-container">
       <canvas id="cropCanvas"></canvas>
     </div>
 
     <div class="actions" style="margin-top:16px;">
-      <button id="confirmCropBtn" class="primary">Procesar Texturas</button>
+      <button id="confirmCropBtn" class="primary">Siguiente: Ajustar Seamless</button>
       <button id="cancelCropBtn" class="ghost">Cancelar</button>
     </div>
   </div>
 
-  <!-- Vista 3: Resultados 3D y Ajustes PBR -->
+  <!-- ETAPA 3: Edición Seamless, Tiling & Tampón -->
+  <div id="tilingView" style="display:none;">
+    <div class="hint">
+      <b>Paso 3: Retoque y Patrón Infinito:</b> Edita las costuras y usa el tampón de clonar. Revisa la repetición en la vista previa 3×3.
+    </div>
+
+    <!-- Controles de Seamless Tiling -->
+    <div class="controls-panel" style="margin-bottom:12px;">
+      <div class="control checkbox">
+        <input type="checkbox" id="enableTiling" checked>
+        <label for="enableTiling"><b>Activar Seamless Tiling (Sin costuras)</b></label>
+      </div>
+      <div class="control">
+        <label><span>Bleeding (Solapamiento)</span><span id="bleedVal">15%</span></label>
+        <input type="range" id="bleedSlider" min="0.02" max="0.35" step="0.01" value="0.15">
+      </div>
+      <div class="control">
+        <label><span>Blur / Feather (Difuminado)</span><span id="tilingBlurVal">12px</span></label>
+        <input type="range" id="tilingBlurSlider" min="0" max="40" step="1" value="12">
+      </div>
+    </div>
+
+    <!-- Controles de Tampón de Clonar -->
+    <div class="controls-panel" style="margin-bottom:12px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <span style="font-size:0.85rem; font-weight:600;">Herramienta Clonar</span>
+        <button id="setCloneSourceBtn" class="ghost" style="padding:4px 10px; font-size:0.8rem;">📍 Fijar Origen</button>
+      </div>
+      <div class="control">
+        <label><span>Tamaño Pincel</span><span id="stampSizeVal">35px</span></label>
+        <input type="range" id="stampSizeSlider" min="5" max="120" step="1" value="35">
+      </div>
+      <div class="control">
+        <label><span>Dureza</span><span id="stampHardnessVal">0.4</span></label>
+        <input type="range" id="stampHardnessSlider" min="0" max="1" step="0.05" value="0.4">
+      </div>
+    </div>
+
+    <!-- Lienzo de Trabajo 1x1 (donde se clona) -->
+    <div style="margin-bottom: 8px;">
+      <span style="font-size:0.8rem; color:var(--text-dim);">Lienzo de trabajo (Dibuja aquí para clonar):</span>
+      <div class="crop-container" style="height:260px; margin-top:4px;">
+        <canvas id="tilingCanvas"></canvas>
+      </div>
+    </div>
+
+    <!-- Vista Previa Infinita (Mosaico 3x3) -->
+    <div style="margin-bottom: 12px;">
+      <span style="font-size:0.8rem; color:var(--text-dim);">Vista previa de repetición en mosaico (3×3):</span>
+      <div id="tilingGridPreview" class="tiling-preview-grid"></div>
+    </div>
+
+    <div class="actions">
+      <button id="confirmTilingBtn" class="primary">Generar Texturas PBR</button>
+      <button id="backToCropBtn" class="ghost">Atrás</button>
+    </div>
+  </div>
+
+  <!-- ETAPA 4: Resultados y Visor 3D -->
   <div id="results">
     <div class="viewer-3d-card">
       <div class="viewer-3d-header">
@@ -150,15 +162,10 @@
       <div class="hdri-controls">
         <div class="control-row">
           <label for="hdriSelect">Entorno HDRI:</label>
-          <select id="hdriSelect">
-            <option value="">Cargando entornos...</option>  
-          </select>
+          <select id="hdriSelect"><option value="">Cargando...</option></select>
         </div>
         <div class="control-row">
-          <label for="hdriRotation">
-            <span>Rotación de Luz</span>
-            <span id="hdriRotVal">0°</span>
-          </label>
+          <label for="hdriRotation"><span>Rotación Luz</span><span id="hdriRotVal">0°</span></label>
           <input type="range" id="hdriRotation" min="0" max="360" step="1" value="0">
         </div>
       </div>
@@ -176,9 +183,7 @@
     <div class="main-map-card">
       <div class="main-map-header">
         <span id="currentLayerTitle">Mapa Albedo</span>
-        <button id="downloadCurrentBtn" class="icon" aria-label="Descargar capa actual">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14"/></svg>
-        </button>
+        <button id="downloadCurrentBtn" class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14"/></svg></button>
       </div>
       
       <div class="single-canvas-container">
@@ -191,140 +196,54 @@
       </div>
     </div>
 
+    <!-- Controles de PBR -->
     <div class="controls-panel">
-      <!-- Ajustes Albedo -->
       <div class="layer-control-group" id="ctrl-albedo">
-        <div class="control">
-          <label><span>Brightness</span><span id="albedoBrightnessVal">0.00</span></label>
-          <input type="range" id="albedoBrightness" min="-0.5" max="0.5" step="0.02" value="0.0">
-        </div>
-        <div class="control">
-          <label><span>Contrast</span><span id="albedoContrastVal">1.00</span></label>
-          <input type="range" id="albedoContrast" min="0.2" max="2.5" step="0.05" value="1.0">
-        </div>
-        <div class="control">
-          <label><span>Saturation</span><span id="albedoSaturationVal">1.00</span></label>
-          <input type="range" id="albedoSaturation" min="0.0" max="2.0" step="0.05" value="1.0">
-        </div>
-        <div class="control">
-          <label><span>Hue</span><span id="albedoHueVal">0°</span></label>
-          <input type="range" id="albedoHue" min="-180" max="180" step="1" value="0">
-        </div>
+        <div class="control"><label><span>Brightness</span><span id="albedoBrightnessVal">0.00</span></label><input type="range" id="albedoBrightness" min="-0.5" max="0.5" step="0.02" value="0.0"></div>
+        <div class="control"><label><span>Contrast</span><span id="albedoContrastVal">1.00</span></label><input type="range" id="albedoContrast" min="0.2" max="2.5" step="0.05" value="1.0"></div>
+        <div class="control"><label><span>Saturation</span><span id="albedoSaturationVal">1.00</span></label><input type="range" id="albedoSaturation" min="0.0" max="2.0" step="0.05" value="1.0"></div>
+        <div class="control"><label><span>Hue</span><span id="albedoHueVal">0°</span></label><input type="range" id="albedoHue" min="-180" max="180" step="1" value="0"></div>
       </div>
 
-      <!-- Ajustes Normal -->
       <div class="layer-control-group" id="ctrl-normal" style="display:none;">
-        <div class="control">
-          <label><span>Strength (0 a 5)</span><span id="normalStrengthVal">2.5</span></label>
-          <input type="range" id="normalStrength" min="0.0" max="5.0" step="0.1" value="2.5">
-        </div>
-        <div class="control">
-          <label><span>Level</span><span id="normalLevelVal">1.0</span></label>
-          <input type="range" id="normalLevel" min="0.1" max="3.0" step="0.1" value="1.0">
-        </div>
-        <div class="control">
-          <label><span>Blur to Sharp (-10 a +10)</span><span id="normalBlurSharpVal">0</span></label>
-          <input type="range" id="normalBlurSharp" min="-10" max="10" step="1" value="0">
-        </div>
+        <div class="control"><label><span>Strength</span><span id="normalStrengthVal">2.5</span></label><input type="range" id="normalStrength" min="0.0" max="5.0" step="0.1" value="2.5"></div>
+        <div class="control"><label><span>Level</span><span id="normalLevelVal">1.0</span></label><input type="range" id="normalLevel" min="0.1" max="3.0" step="0.1" value="1.0"></div>
+        <div class="control"><label><span>Blur/Sharp</span><span id="normalBlurSharpVal">0</span></label><input type="range" id="normalBlurSharp" min="-10" max="10" step="1" value="0"></div>
         <div class="control" style="display:flex; justify-content:space-between; align-items:center;">
-          <label style="margin:0;">Filter</label>
-          <select id="normalFilter" style="background:var(--surface-2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:4px 8px;">
-            <option value="sobel" selected>Sobel</option>
-            <option value="scharr">Scharr</option>
-          </select>
+          <label style="margin:0;">Filtro</label>
+          <select id="normalFilter" style="background:var(--surface-2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:4px 8px;"><option value="sobel" selected>Sobel</option><option value="scharr">Scharr</option></select>
         </div>
-        <div class="control checkbox">
-          <input type="checkbox" id="normalInvertR">
-          <label for="normalInvertR">Invert R</label>
-        </div>
-        <div class="control checkbox">
-          <input type="checkbox" id="normalInvertG">
-          <label for="normalInvertG">Invert G</label>
-        </div>
-        <div class="control checkbox">
-          <input type="checkbox" id="normalInvertHeight">
-          <label for="normalInvertHeight">Invert Height</label>
-        </div>
-        <div class="control">
-          <label><span>Z Range</span><span id="normalZRangeVal">1.00</span></label>
-          <input type="range" id="normalZRange" min="0.1" max="2.0" step="0.05" value="1.0">
-        </div>
+        <div class="control checkbox"><input type="checkbox" id="normalInvertR"><label for="normalInvertR">Invert R</label></div>
+        <div class="control checkbox"><input type="checkbox" id="normalInvertG"><label for="normalInvertG">Invert G</label></div>
+        <div class="control checkbox"><input type="checkbox" id="normalInvertHeight"><label for="normalInvertHeight">Invert Height</label></div>
+        <div class="control"><label><span>Z Range</span><span id="normalZRangeVal">1.00</span></label><input type="range" id="normalZRange" min="0.1" max="2.0" step="0.05" value="1.0"></div>
       </div>
 
-      <!-- Ajustes Height / Displacement -->
       <div class="layer-control-group" id="ctrl-height" style="display:none;">
-        <div class="control">
-          <label><span>Contrast</span><span id="heightContrastVal">1.0</span></label>
-          <input type="range" id="heightContrast" min="0.2" max="3.0" step="0.1" value="1.0">
-        </div>
-        <div class="control">
-          <label><span>Blur to Sharp (-10 a +10)</span><span id="heightBlurSharpVal">0</span></label>
-          <input type="range" id="heightBlurSharp" min="-10" max="10" step="1" value="0">
-        </div>
-        <div class="control checkbox">
-          <input type="checkbox" id="heightInvert">
-          <label for="heightInvert">Invert</label>
-        </div>
-        <div class="control">
-          <label><span>Desplazamiento 3D</span><span id="dispVal">0.05</span></label>
-          <input type="range" id="dispSlider" min="0" max="0.2" step="0.005" value="0.05">
-        </div>
+        <div class="control"><label><span>Contrast</span><span id="heightContrastVal">1.0</span></label><input type="range" id="heightContrast" min="0.2" max="3.0" step="0.1" value="1.0"></div>
+        <div class="control"><label><span>Blur/Sharp</span><span id="heightBlurSharpVal">0</span></label><input type="range" id="heightBlurSharp" min="-10" max="10" step="1" value="0"></div>
+        <div class="control checkbox"><input type="checkbox" id="heightInvert"><label for="heightInvert">Invert</label></div>
+        <div class="control"><label><span>Desplazamiento 3D</span><span id="dispVal">0.05</span></label><input type="range" id="dispSlider" min="0" max="0.2" step="0.005" value="0.05"></div>
       </div>
 
-      <!-- Ajustes AO -->
       <div class="layer-control-group" id="ctrl-ao" style="display:none;">
-        <div class="control">
-          <label><span>Strength</span><span id="aoStrengthVal">3.0</span></label>
-          <input type="range" id="aoStrength" min="0.0" max="5.0" step="0.1" value="3.0">
-        </div>
-        <div class="control">
-          <label><span>Mean</span><span id="aoMeanVal">0.50</span></label>
-          <input type="range" id="aoMean" min="0.0" max="1.0" step="0.05" value="0.5">
-        </div>
-        <div class="control">
-          <label><span>Range</span><span id="aoRangeVal">4</span></label>
-          <input type="range" id="aoRange" min="1" max="20" step="1" value="4">
-        </div>
-        <div class="control">
-          <label><span>Blur to Sharp (-10 a +10)</span><span id="aoBlurSharpVal">0</span></label>
-          <input type="range" id="aoBlurSharp" min="-10" max="10" step="1" value="0">
-        </div>
-        <div class="control checkbox">
-          <input type="checkbox" id="aoInvert">
-          <label for="aoInvert">Invert</label>
-        </div>
+        <div class="control"><label><span>Strength</span><span id="aoStrengthVal">3.0</span></label><input type="range" id="aoStrength" min="0.0" max="5.0" step="0.1" value="3.0"></div>
+        <div class="control"><label><span>Mean</span><span id="aoMeanVal">0.50</span></label><input type="range" id="aoMean" min="0.0" max="1.0" step="0.05" value="0.5"></div>
+        <div class="control"><label><span>Range</span><span id="aoRangeVal">4</span></label><input type="range" id="aoRange" min="1" max="20" step="1" value="4"></div>
+        <div class="control"><label><span>Blur/Sharp</span><span id="aoBlurSharpVal">0</span></label><input type="range" id="aoBlurSharp" min="-10" max="10" step="1" value="0"></div>
+        <div class="control checkbox"><input type="checkbox" id="aoInvert"><label for="aoInvert">Invert</label></div>
       </div>
 
-      <!-- Ajustes Roughness -->
       <div class="layer-control-group" id="ctrl-roughness" style="display:none;">
-        <div class="control">
-          <label><span>Strength</span><span id="roughnessStrengthVal">1.0</span></label>
-          <input type="range" id="roughnessStrength" min="0.1" max="3.0" step="0.1" value="1.0">
-        </div>
-        <div class="control">
-          <label><span>Low level</span><span id="roughnessLowVal">0.00</span></label>
-          <input type="range" id="roughnessLow" min="0.0" max="1.0" step="0.02" value="0.0">
-        </div>
-        <div class="control">
-          <label><span>Max level</span><span id="roughnessHighVal">1.00</span></label>
-          <input type="range" id="roughnessHigh" min="0.0" max="1.0" step="0.02" value="1.0">
-        </div>
-        <div class="control">
-          <label><span>Offset</span><span id="roughnessOffsetVal">0.00</span></label>
-          <input type="range" id="roughnessOffset" min="-0.5" max="0.5" step="0.02" value="0.0">
-        </div>
-        <div class="control checkbox">
-          <input type="checkbox" id="roughnessInvert">
-          <label for="roughnessInvert">Invert</label>
-        </div>
+        <div class="control"><label><span>Strength</span><span id="roughnessStrengthVal">1.0</span></label><input type="range" id="roughnessStrength" min="0.1" max="3.0" step="0.1" value="1.0"></div>
+        <div class="control"><label><span>Low level</span><span id="roughnessLowVal">0.00</span></label><input type="range" id="roughnessLow" min="0.0" max="1.0" step="0.02" value="0.0"></div>
+        <div class="control"><label><span>Max level</span><span id="roughnessHighVal">1.00</span></label><input type="range" id="roughnessHigh" min="0.0" max="1.0" step="0.02" value="1.0"></div>
+        <div class="control"><label><span>Offset</span><span id="roughnessOffsetVal">0.00</span></label><input type="range" id="roughnessOffset" min="-0.5" max="0.5" step="0.02" value="0.0"></div>
+        <div class="control checkbox"><input type="checkbox" id="roughnessInvert"><label for="roughnessInvert">Invert</label></div>
       </div>
 
-      <!-- Ajustes Metallic -->
       <div class="layer-control-group" id="ctrl-metallic" style="display:none;">
-        <div class="control">
-          <label><span>Valor constante metálico</span><span id="metallicVal">0.0</span></label>
-          <input type="range" id="metallicSlider" min="0" max="1" step="0.05" value="0">
-        </div>
+        <div class="control"><label><span>Valor Metálico</span><span id="metallicVal">0.0</span></label><input type="range" id="metallicSlider" min="0" max="1" step="0.05" value="0"></div>
       </div>
     </div>
 

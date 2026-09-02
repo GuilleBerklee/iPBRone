@@ -262,6 +262,25 @@ button.icon svg { width: 16px; height: 16px; }
   touch-action: none;
 }
 
+.tiling-preview-grid {
+  width: 100%;
+  height: 220px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background-repeat: repeat;
+  background-size: 33.33% 33.33%; /* Representa un mosaico 3x3 */
+  background-position: center;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+}
+
+#tilingCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+  cursor: crosshair;
+}
+
 .controls-panel {
   background: var(--surface);
   border: 1px solid var(--border);
