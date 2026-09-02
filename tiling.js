@@ -1,9 +1,9 @@
 export class SeamlessEngine {
   /**
-   * Genera una textura continua mediante offset y fusión por gradiente central.
-   * Compatible con todos los navegadores y dispositivos móviles.
+   * Genera una textura continua suavizando únicamente los bordes exteriores
+   * (derecho e inferior) para encajarlos con los bordes opuestos.
    */
-  static process(sourceCanvas, targetCanvas, bleedRatio = 0.3) {
+  static process(sourceCanvas, targetCanvas, bleedRatio = 0.15) {
     const w = sourceCanvas.width;
     const h = sourceCanvas.height;
 
@@ -11,53 +11,57 @@ export class SeamlessEngine {
     targetCanvas.height = h;
     const tCtx = targetCanvas.getContext('2d');
 
-    // 1. Crear la imagen desplazada (Offset W/2, H/2)
-    const offsetCanvas = document.createElement('canvas');
-    offsetCanvas.width = w;
-    offsetCanvas.height = h;
-    const offCtx = offsetCanvas.getContext('2d');
+    // 1. Renderizar la imagen original como base intacta
+    tCtx.drawImage(sourceCanvas, 0, 0);
 
-    const halfW = Math.floor(w / 2);
-    const halfH = Math.floor(h / 2);
+    const marginX = Math.floor(w * bleedRatio);
+    const marginY = Math.floor(h * bleedRatio);
 
-    offCtx.drawImage(sourceCanvas, 0, 0, halfW, halfH, halfW, halfH, halfW, halfH);
-    offCtx.drawImage(sourceCanvas, halfW, 0, w - halfW, halfH, 0, halfH, w - halfW, halfH);
-    offCtx.drawImage(sourceCanvas, 0, halfH, halfW, h - halfH, halfW, 0, halfW, h - halfH);
-    offCtx.drawImage(sourceCanvas, halfW, halfH, w - halfW, h - halfH, 0, 0, w - halfW, h - halfH);
+    if (marginX <= 0 || marginY <= 0) return;
 
-    // Dibujar la base desplazada en el canvas final
-    tCtx.drawImage(offsetCanvas, 0, 0);
+    // 2. Transición del borde Izquierdo sobre el borde Derecho
+    const stripRight = document.createElement('canvas');
+    stripRight.width = marginX;
+    stripRight.height = h;
+    const srCtx = stripRight.getContext('2d');
 
-    // 2. Crear máscara suave desde el centro hacia los bordes
-    const maskCanvas = document.createElement('canvas');
-    maskCanvas.width = w;
-    maskCanvas.height = h;
-    const maskCtx = maskCanvas.getContext('2d');
+    // Copiar e invertir la franja izquierda para que encaje geométricamente
+    srCtx.translate(marginX, 0);
+    srCtx.scale(-1, 1);
+    srCtx.drawImage(sourceCanvas, 0, 0, marginX, h, 0, 0, marginX, h);
+    srCtx.setTransform(1, 0, 0, 1, 0, 0);
 
-    // Gradiente radial desde el centro
-    const maxRadius = Math.min(w, h) * bleedRatio;
-    const grad = maskCtx.createRadialGradient(
-      w / 2, h / 2, 0,
-      w / 2, h / 2, maxRadius
-    );
-    grad.addColorStop(0, 'rgba(255, 255, 255, 1)'); // Opaco en el centro
-    grad.addColorStop(1, 'rgba(255, 255, 255, 0)'); // Transparente hacia afuera
+    // Aplicar máscara de transparencia (0% en el interior, 100% en el borde exterior)
+    const gradR = srCtx.createLinearGradient(0, 0, marginX, 0);
+    gradR.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    gradR.addColorStop(1, 'rgba(0, 0, 0, 1)');
+    srCtx.globalCompositeOperation = 'destination-in';
+    srCtx.fillStyle = gradR;
+    srCtx.fillRect(0, 0, marginX, h);
 
-    maskCtx.fillStyle = grad;
-    maskCtx.fillRect(0, 0, w, h);
+    tCtx.drawImage(stripRight, w - marginX, 0);
 
-    // 3. Recortar la imagen original con la máscara central y superponerla
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = w;
-    tempCanvas.height = h;
-    const tempCtx = tempCanvas.getContext('2d');
+    // 3. Transición del borde Superior sobre el borde Inferior
+    const stripBottom = document.createElement('canvas');
+    stripBottom.width = w;
+    stripBottom.height = marginY;
+    const sbCtx = stripBottom.getContext('2d');
 
-    tempCtx.drawImage(sourceCanvas, 0, 0);
-    tempCtx.globalCompositeOperation = 'destination-in';
-    tempCtx.drawImage(maskCanvas, 0, 0);
+    // Copiar e invertir la franja superior tomada del canvas ya procesado
+    sbCtx.translate(0, marginY);
+    sbCtx.scale(1, -1);
+    sbCtx.drawImage(targetCanvas, 0, 0, w, marginY, 0, 0, w, marginY);
+    sbCtx.setTransform(1, 0, 0, 1, 0, 0);
 
-    // Superponer el centro continuo sobre las costuras de la base
-    tCtx.drawImage(tempCanvas, 0, 0);
+    // Aplicar máscara de transparencia vertical
+    const gradB = sbCtx.createLinearGradient(0, 0, 0, marginY);
+    gradB.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    gradB.addColorStop(1, 'rgba(0, 0, 0, 1)');
+    sbCtx.globalCompositeOperation = 'destination-in';
+    sbCtx.fillStyle = gradB;
+    sbCtx.fillRect(0, 0, w, marginY);
+
+    tCtx.drawImage(stripBottom, 0, h - marginY);
   }
 }
 
