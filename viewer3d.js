@@ -17,6 +17,7 @@ export class MaterialViewer3D {
     this.hdriEnabled = true;
     this.hdriIntensity = 1.0;
     this.initialized = false;
+    this.tilingAmount = 1;
   }
 
   init() {
@@ -153,16 +154,20 @@ export class MaterialViewer3D {
       const tex = new THREE.CanvasTexture(canvas);
       tex.wrapS = THREE.RepeatWrapping;
       tex.wrapT = THREE.RepeatWrapping;
+      // Aplicamos el valor actual de tilingAmount a cada mapa
+      tex.repeat.set(this.tilingAmount, this.tilingAmount);
       tex.needsUpdate = true;
       return tex;
     };
 
+    // Limpieza de memoria de texturas anteriores
     if (this.textures.map) this.textures.map.dispose();
     if (this.textures.normalMap) this.textures.normalMap.dispose();
     if (this.textures.roughnessMap) this.textures.roughnessMap.dispose();
     if (this.textures.aoMap) this.textures.aoMap.dispose();
     if (this.textures.displacementMap) this.textures.displacementMap.dispose();
 
+    // Creación y asignación de espacio de color
     this.textures.map = createTexture(canvases.albedo);
     this.textures.map.colorSpace = THREE.SRGBColorSpace;
     this.textures.normalMap = createTexture(canvases.normal);
@@ -170,12 +175,14 @@ export class MaterialViewer3D {
     this.textures.aoMap = createTexture(canvases.ao);
     this.textures.displacementMap = createTexture(canvases.height);
 
+    // Asignación al material PBR
     this.material.map = this.textures.map;
     this.material.normalMap = this.textures.normalMap;
     this.material.roughnessMap = this.textures.roughnessMap;
     this.material.aoMap = this.textures.aoMap;
     this.material.displacementMap = this.textures.displacementMap;
 
+    // Ajustes del material
     this.material.displacementScale = settings.disp;
     this.material.metalness = settings.metallic;
 
@@ -192,4 +199,25 @@ export class MaterialViewer3D {
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h, false);
   }
+
+  setTilingAmount(amount) {
+  this.tilingAmount = amount;
+  if (!this.material) return;
+
+  const maps = ['map', 'normalMap', 'roughnessMap', 'displacementMap', 'aoMap', 'metalnessMap'];
+  
+  maps.forEach(mapName => {
+    const texture = this.material[mapName];
+    if (texture) {
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.RepeatWrapping;
+      texture.repeat.set(amount, amount);
+      texture.needsUpdate = true;
+    }
+  });
+
+  if (this.renderer && this.scene && this.camera) {
+    this.renderer.render(this.scene, this.camera);
+  }
+}
 }

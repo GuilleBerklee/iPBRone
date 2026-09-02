@@ -75,6 +75,9 @@ class App {
       mapToggleHint: document.getElementById('mapToggleHint'),
       singleCanvasContainer: document.getElementById('singleCanvasContainer'),
 
+      tiling3dSlider: document.getElementById('tiling3dSlider'),
+      tiling3dVal: document.getElementById('tiling3dVal'),
+
       canvases: {
         albedo: document.getElementById('albedoCanvas'),
         normal: document.getElementById('normalCanvas'),
@@ -260,6 +263,12 @@ class App {
         this.dom.mapToggleHint.style.opacity = '0.6';
         this.dom.mapToggleHint.style.color = '';
       }
+    });
+
+    this.dom.tiling3dSlider.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      this.dom.tiling3dVal.textContent = `${val}x`;
+      this.viewer3D.setTilingAmount(val);
     });
   }
 
