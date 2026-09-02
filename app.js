@@ -1,5 +1,6 @@
 import { PBRGenerator } from './pbr-generator.js';
 import { MaterialViewer3D } from './viewer3d.js';
+import { TilingEngine, CloneStampTool} from './tiling.js';
 
 class App {
   constructor() {
@@ -9,7 +10,8 @@ class App {
     this.cachedData = null;
     this.activeLayer = 'albedo';
     this.loadedImage = null; // Guardará la foto original cargada/capturada
-
+    this.activeEditTab = 'crop'; // 'crop', 'tiling', 'clone'
+    this.cloneTool = null;
     // Estado del recuadro de recorte (en coordenadas relativas 0 a 1)
     this.cropState = {
       x: 0.1,
@@ -184,6 +186,53 @@ class App {
         e.target.classList.add('active');
         this.viewer3D.setMeshType(e.target.dataset.mesh);
       });
+    });
+  
+    const tabCrop = document.getElementById('tabCrop');
+    const tabTiling = document.getElementById('tabTiling');
+    const tabClone = document.getElementById('tabClone');
+    const panelTiling = document.getElementById('panelTiling');
+    const panelClone = document.getElementById('panelClone');
+
+    const setTab = (tab) => {
+      this.activeEditTab = tab;
+      tabCrop.classList.toggle('active', tab === 'crop');
+      tabTiling.classList.toggle('active', tab === 'tiling');
+      tabClone.classList.toggle('active', tab === 'clone');
+
+      panelTiling.style.display = tab === 'tiling' ? 'block' : 'none';
+      panelClone.style.display = tab === 'clone' ? 'block' : 'none';
+      this.renderCropCanvas();
+    };
+
+    tabCrop.addEventListener('click', () => setTab('crop'));
+    tabTiling.addEventListener('click', () => setTab('tiling'));
+    tabClone.addEventListener('click', () => setTab('clone'));
+
+    // Sliders de Tiling
+    document.getElementById('bleedSlider').addEventListener('input', (e) => {
+      document.getElementById('bleedVal').textContent = `${Math.round(e.target.value * 100)}%`;
+    });
+    document.getElementById('tilingBlurSlider').addEventListener('input', (e) => {
+      document.getElementById('tilingBlurVal').textContent = `${e.target.value}px`;
+    });
+
+    // Tampón de clonar
+    const cloneBtn = document.getElementById('setCloneSourceBtn');
+    cloneBtn.addEventListener('click', () => {
+      if (this.cloneTool) {
+        this.cloneTool.isSettingSource = true;
+        cloneBtn.textContent = '🎯 Haz clic en la imagen para origen';
+      }
+    });
+
+    document.getElementById('stampSizeSlider').addEventListener('input', (e) => {
+      document.getElementById('stampSizeVal').textContent = `${e.target.value}px`;
+      if (this.cloneTool) this.cloneTool.brushSize = parseInt(e.target.value, 10);
+    });
+    document.getElementById('stampHardnessSlider').addEventListener('input', (e) => {
+      document.getElementById('stampHardnessVal').textContent = e.target.value;
+      if (this.cloneTool) this.cloneTool.brushHardness = parseFloat(e.target.value);
     });
   }
 
@@ -455,7 +504,6 @@ class App {
     const imgH = this.loadedImage.height;
     const minDim = Math.min(imgW, imgH);
 
-    // Calcular posición y tamaño real recortado sobre la foto nativa
     const sourceX = this.cropState.x * imgW;
     const sourceY = this.cropState.y * imgH;
     const sourceSize = this.cropState.size * minDim;
@@ -471,6 +519,14 @@ class App {
     tmp.height = outSize;
     const ctx = tmp.getContext('2d');
     ctx.drawImage(this.loadedImage, sourceX, sourceY, sourceSize, sourceSize, 0, 0, outSize, outSize);
+
+    // --- APLICAR SEAMLESS TILING SI ESTÁ ACTIVO ---
+    const isTilingEnabled = document.getElementById('enableTiling').checked;
+    if (isTilingEnabled) {
+      const bleed = parseFloat(document.getElementById('bleedSlider').value);
+      const blur = parseInt(document.getElementById('tilingBlurSlider').value, 10);
+      TilingEngine.makeSeamless(tmp, bleed, blur);
+    }
 
     const imageData = ctx.getImageData(0, 0, outSize, outSize);
     this.cachedData = {

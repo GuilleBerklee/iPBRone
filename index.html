@@ -70,20 +70,58 @@
     </div>
   </div>
 
-  <!-- Vista 2: Ajuste de Recorte (Cropping) -->
+<!-- Vista 2: Ajuste de Recorte y Edición Seamless / Tampón -->
   <div id="cropView" style="display:none;">
     <div class="hint">
-      <b>Ajuste de encuadre:</b> Arrastra o redimensiona la caja para seleccionar el área de textura deseada.
+      <b>Ajuste y Edición:</b> Recorta la zona, activa el patrón infinito o usa el tampón para corregir imperfecciones.
     </div>
 
-    <div class="resolution-selector">
-      <label for="resSelect">Resolución final:</label>
+    <div class="resolution-selector" style="flex-wrap: wrap; gap: 8px;">
+      <label for="resSelect">Resolución:</label>
       <select id="resSelect">
         <option value="512">512 × 512 px</option>
         <option value="1024" selected>1024 × 1024 px</option>
         <option value="2048">2048 × 2048 px</option>
         <option value="max">Máxima Nativa</option>
       </select>
+    </div>
+
+    <!-- Pestañas/Herramientas de Edición -->
+    <div class="layer-tabs" style="margin-top: 10px;">
+      <button id="tabCrop" class="tab-btn active">Recorte</button>
+      <button id="tabTiling" class="tab-btn">Seamless Tiling</button>
+      <button id="tabClone" class="tab-btn">Tampón Clonar</button>
+    </div>
+
+    <!-- Panel Tiling -->
+    <div id="panelTiling" class="controls-panel" style="display:none; margin-bottom:10px;">
+      <div class="control checkbox">
+        <input type="checkbox" id="enableTiling">
+        <label for="enableTiling">Activar Patrón Seamless (Sin costuras)</label>
+      </div>
+      <div class="control">
+        <label><span>Bleed / Solapamiento</span><span id="bleedVal">15%</span></label>
+        <input type="range" id="bleedSlider" min="0" max="0.35" step="0.01" value="0.15">
+      </div>
+      <div class="control">
+        <label><span>Blur / Feathet (Suavizado)</span><span id="tilingBlurVal">10px</span></label>
+        <input type="range" id="tilingBlurSlider" min="0" max="40" step="1" value="10">
+      </div>
+    </div>
+
+    <!-- Panel Tampón Clonar -->
+    <div id="panelClone" class="controls-panel" style="display:none; margin-bottom:10px;">
+      <div style="display:flex; gap:8px; margin-bottom:8px;">
+        <button id="setCloneSourceBtn" class="ghost" style="flex:1;">📍 Definir Origen</button>
+      </div>
+      <div class="control">
+        <label><span>Tamaño Pincel</span><span id="stampSizeVal">30px</span></label>
+        <input type="range" id="stampSizeSlider" min="5" max="100" step="1" value="30">
+      </div>
+      <div class="control">
+        <label><span>Dureza de Borde</span><span id="stampHardnessVal">0.5</span></label>
+        <input type="range" id="stampHardnessSlider" min="0" max="1" step="0.05" value="0.5">
+      </div>
     </div>
 
     <div class="crop-container">
