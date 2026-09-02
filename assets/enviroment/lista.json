@@ -1,0 +1,10 @@
+[
+  { "file": "city.exr", "name": "Ciudad" },
+  { "file": "courtyard.exr", "name": "Patio" },
+  { "file": "forest.exr", "name": "Bosque" },
+  { "file": "interior.exr", "name": "Interior" },
+  { "file": "night.exr", "name": "Noche" },
+  { "file": "studio.exr", "name": "Estudio" },
+  { "file": "sunrise.exr", "name": "Amanecer" },
+  { "file": "sunset.exr", "name": "Atardecer" }
+]

@@ -78,6 +78,7 @@ class App {
 
   init() {
     this.bindEvents();
+    this.loadHDRList();
     if (!window.isSecureContext && location.hostname !== 'localhost') {
       const banner = document.getElementById('secureBanner');
       if (banner) banner.style.display = 'block';
@@ -363,6 +364,33 @@ class App {
     a.download = 'material-pbr.zip';
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  async loadHDRList() {
+    try {
+      // Lee el archivo JSON
+      const response = await fetch('assets/environment/lista.json');
+      const hdris = await response.json();
+      
+      // Limpia el selector
+      this.dom.hdriSelect.innerHTML = '';
+      
+      // Crea las opciones dinámicamente
+      hdris.forEach((hdri, index) => {
+        const opt = document.createElement('option');
+        opt.value = hdri.file;
+        opt.textContent = hdri.name;
+        this.dom.hdriSelect.appendChild(opt);
+      });
+
+      // Carga el primero por defecto si el visor ya está inicializado
+      if (this.viewer3D.initialized && hdris.length > 0) {
+        this.viewer3D.loadHDRI(hdris[0].file);
+      }
+    } catch (err) {
+      console.error("No se pudo cargar la lista de HDRI:", err);
+      this.dom.hdriSelect.innerHTML = '<option value="">Error al cargar entornos</option>';
+    }
   }
 }
 
