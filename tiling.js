@@ -1,17 +1,17 @@
 export class SeamlessEngine {
   /**
-   * Genera el mapa continuo mediante desplazamiento de cuadrantes y fusión por máscara difuminada
+   * Genera una textura continua mediante offset y fusión por gradiente central.
+   * Compatible con todos los navegadores y dispositivos móviles.
    */
-  static process(sourceCanvas, targetCanvas, bleedRatio = 0.15, blurPx = 12) {
+  static process(sourceCanvas, targetCanvas, bleedRatio = 0.3) {
     const w = sourceCanvas.width;
     const h = sourceCanvas.height;
 
     targetCanvas.width = w;
     targetCanvas.height = h;
-
     const tCtx = targetCanvas.getContext('2d');
-    
-    // Canvas temporal con imagen desplazada (Offset W/2, H/2)
+
+    // 1. Crear la imagen desplazada (Offset W/2, H/2)
     const offsetCanvas = document.createElement('canvas');
     offsetCanvas.width = w;
     offsetCanvas.height = h;
@@ -25,50 +25,38 @@ export class SeamlessEngine {
     offCtx.drawImage(sourceCanvas, 0, halfH, halfW, h - halfH, halfW, 0, halfW, h - halfH);
     offCtx.drawImage(sourceCanvas, halfW, halfH, w - halfW, h - halfH, 0, 0, w - halfW, h - halfH);
 
-    if (bleedRatio <= 0) {
-      tCtx.drawImage(offsetCanvas, 0, 0);
-      return;
-    }
+    // Dibujar la base desplazada en el canvas final
+    tCtx.drawImage(offsetCanvas, 0, 0);
 
-    // Crear máscara de fusión en cruz
+    // 2. Crear máscara suave desde el centro hacia los bordes
     const maskCanvas = document.createElement('canvas');
     maskCanvas.width = w;
     maskCanvas.height = h;
     const maskCtx = maskCanvas.getContext('2d');
 
-    const seamW = Math.floor(w * bleedRatio);
-    const seamH = Math.floor(h * bleedRatio);
+    // Gradiente radial desde el centro
+    const maxRadius = Math.min(w, h) * bleedRatio;
+    const grad = maskCtx.createRadialGradient(
+      w / 2, h / 2, 0,
+      w / 2, h / 2, maxRadius
+    );
+    grad.addColorStop(0, 'rgba(255, 255, 255, 1)'); // Opaco en el centro
+    grad.addColorStop(1, 'rgba(255, 255, 255, 0)'); // Transparente hacia afuera
 
-    maskCtx.fillStyle = '#ffffff';
-    maskCtx.fillRect(halfW - seamW / 2, 0, seamW, h);
-    maskCtx.fillRect(0, halfH - seamH / 2, w, seamH);
+    maskCtx.fillStyle = grad;
+    maskCtx.fillRect(0, 0, w, h);
 
-    // Aplicar desenfoque gaussiano
-    if (blurPx > 0) {
-      const blurCanvas = document.createElement('canvas');
-      blurCanvas.width = w;
-      blurCanvas.height = h;
-      const bCtx = blurCanvas.getContext('2d');
-      bCtx.filter = `blur(${blurPx}px)`;
-      bCtx.drawImage(maskCanvas, 0, 0);
-
-      maskCtx.clearRect(0, 0, w, h);
-      maskCtx.drawImage(blurCanvas, 0, 0);
-    }
-
-    // Renderizar base desplazada
-    tCtx.drawImage(offsetCanvas, 0, 0);
-
-    // Combinar con la original
+    // 3. Recortar la imagen original con la máscara central y superponerla
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = w;
     tempCanvas.height = h;
     const tempCtx = tempCanvas.getContext('2d');
 
     tempCtx.drawImage(sourceCanvas, 0, 0);
-    tempCtx.globalCompositeOperation = 'destination-out';
+    tempCtx.globalCompositeOperation = 'destination-in';
     tempCtx.drawImage(maskCanvas, 0, 0);
 
+    // Superponer el centro continuo sobre las costuras de la base
     tCtx.drawImage(tempCanvas, 0, 0);
   }
 }
