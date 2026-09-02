@@ -68,6 +68,13 @@ class App {
       hdriRotation: document.getElementById('hdriRotation'),
       hdriRotVal: document.getElementById('hdriRotVal'),
 
+      hdriEnable: document.getElementById('hdriEnable'),
+      hdriIntensity: document.getElementById('hdriIntensity'),
+      hdriIntensityVal: document.getElementById('hdriIntensityVal'),
+      toggleMainMapHeader: document.getElementById('toggleMainMapHeader'),
+      mapToggleHint: document.getElementById('mapToggleHint'),
+      singleCanvasContainer: document.getElementById('singleCanvasContainer'),
+
       canvases: {
         albedo: document.getElementById('albedoCanvas'),
         normal: document.getElementById('normalCanvas'),
@@ -227,6 +234,32 @@ class App {
         e.target.classList.add('active');
         this.viewer3D.setMeshType(e.target.dataset.mesh);
       });
+    });
+
+    this.dom.hdriEnable.addEventListener('change', (e) => {
+      this.viewer3D.setHDRIEnabled(e.target.checked);
+    });
+
+    // 2. Control de Intensidad HDRI
+    this.dom.hdriIntensity.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      this.dom.hdriIntensityVal.textContent = `${val.toFixed(1)}x`;
+      this.viewer3D.setHDRIIntensity(val);
+    });
+
+    // 3. Ocultar / Mostrar vista previa 2D haciendo clic en el título
+    this.dom.toggleMainMapHeader.addEventListener('click', () => {
+      const isCollapsed = this.dom.singleCanvasContainer.classList.toggle('collapsed');
+      
+      if (isCollapsed) {
+        this.dom.mapToggleHint.textContent = '(clic para mostrar)';
+        this.dom.mapToggleHint.style.opacity = '0.9';
+        this.dom.mapToggleHint.style.color = 'var(--accent, #e8a33d)';
+      } else {
+        this.dom.mapToggleHint.textContent = '(clic para ocultar)';
+        this.dom.mapToggleHint.style.opacity = '0.6';
+        this.dom.mapToggleHint.style.color = '';
+      }
     });
   }
 

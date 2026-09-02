@@ -14,6 +14,8 @@ export class MaterialViewer3D {
     this.textures = {};
     this.currentHDRI = null;
     this.exrLoader = new EXRLoader();
+    this.hdriEnabled = true;
+    this.hdriIntensity = 1.0;
     this.initialized = false;
   }
 
@@ -96,6 +98,35 @@ export class MaterialViewer3D {
     const radians = THREE.MathUtils.degToRad(degrees);
     this.scene.environmentRotation.y = radians;
     this.scene.backgroundRotation.y = radians;
+  }
+
+  setHDRIEnabled(enabled) {
+    this.hdriEnabled = enabled;
+    this.updateHDRIProps();
+  }
+
+  setHDRIIntensity(intensity) {
+    this.hdriIntensity = intensity;
+    this.updateHDRIProps();
+  }
+
+  updateHDRIProps() {
+    if (!this.scene) return;
+    
+    const effectiveIntensity = this.hdriEnabled ? this.hdriIntensity : 0;
+
+    // Compatibilidad con Three.js para intensidad de fondo y luz ambiental
+    if ('environmentIntensity' in this.scene) {
+      this.scene.environmentIntensity = effectiveIntensity;
+      this.scene.backgroundIntensity = effectiveIntensity;
+    } else if (this.material) {
+      this.material.envMapIntensity = effectiveIntensity;
+    }
+
+    // Fuerza renderizado si el loop continuo no está activo
+    if (this.renderer && this.scene && this.camera) {
+      this.renderer.render(this.scene, this.camera);
+    }
   }
 
   setMeshType(type) {

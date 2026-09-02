@@ -281,6 +281,24 @@ button.icon svg { width: 16px; height: 16px; }
   cursor: crosshair;
 }
 
+.main-map-header {
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+  border-radius: var(--radius);
+  padding: 8px 12px;
+}
+
+.main-map-header:hover {
+  background-color: var(--surface-2, rgba(255, 255, 255, 0.05));
+}
+
+.single-canvas-container {
+  transition: all 0.25s ease-in-out;
+}
+
+.single-canvas-container.collapsed {
+  display: none !important;
+}
+
 .controls-panel {
   background: var(--surface);
   border: 1px solid var(--border);
