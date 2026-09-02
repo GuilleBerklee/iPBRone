@@ -8,6 +8,21 @@ class App {
     this.isTorchOn = false;
     this.cachedData = null;
     this.activeLayer = 'albedo';
+    this.loadedImage = null; // Guardará la foto original cargada/capturada
+
+    // Estado del recuadro de recorte (en coordenadas relativas 0 a 1)
+    this.cropState = {
+      x: 0.1,
+      y: 0.1,
+      size: 0.8,
+      isDragging: false,
+      isResizing: false,
+      startX: 0,
+      startY: 0,
+      initialCropX: 0,
+      initialCropY: 0,
+      initialCropSize: 0
+    };
     
     this.viewer3D = new MaterialViewer3D('canvas3d-container');
 
@@ -16,9 +31,15 @@ class App {
       placeholder: document.getElementById('placeholder'),
       shutterBtn: document.getElementById('shutterBtn'),
       torchBtn: document.getElementById('torchBtn'),
+      galleryBtn: document.getElementById('galleryBtn'),
+      fileInput: document.getElementById('fileInput'),
       startCameraBtn: document.getElementById('startCameraBtn'),
       statusEl: document.getElementById('status'),
       captureView: document.getElementById('captureView'),
+      cropView: document.getElementById('cropView'),
+      cropCanvas: document.getElementById('cropCanvas'),
+      confirmCropBtn: document.getElementById('confirmCropBtn'),
+      cancelCropBtn: document.getElementById('cancelCropBtn'),
       resultsView: document.getElementById('results'),
       retakeBtn: document.getElementById('retakeBtn'),
       downloadAllBtn: document.getElementById('downloadAllBtn'),
@@ -105,6 +126,7 @@ class App {
 
   init() {
     this.bindEvents();
+    this.initCropperEvents();
     this.loadHDRList();
     if (!window.isSecureContext && location.hostname !== 'localhost') {
       const banner = document.getElementById('secureBanner');
@@ -116,6 +138,12 @@ class App {
     this.dom.startCameraBtn.addEventListener('click', () => this.startCamera());
     this.dom.shutterBtn.addEventListener('click', () => this.capturePhoto());
     this.dom.torchBtn.addEventListener('click', () => this.toggleTorch());
+    this.dom.galleryBtn.addEventListener('click', () => this.dom.fileInput.click());
+    this.dom.fileInput.addEventListener('change', (e) => this.handleGallerySelect(e));
+
+    this.dom.confirmCropBtn.addEventListener('click', () => this.confirmCrop());
+    this.dom.cancelCropBtn.addEventListener('click', () => this.showCaptureView());
+
     this.dom.retakeBtn.addEventListener('click', () => this.showCaptureView());
     this.dom.downloadAllBtn.addEventListener('click', () => this.downloadZip());
     this.dom.downloadCurrentBtn.addEventListener('click', () => {
@@ -157,34 +185,6 @@ class App {
         this.viewer3D.setMeshType(e.target.dataset.mesh);
       });
     });
-  }
-
-  setActiveLayer(layerKey) {
-    this.activeLayer = layerKey;
-
-    document.querySelectorAll('.tab-btn').forEach(b => {
-      b.classList.toggle('active', b.dataset.layer === layerKey);
-    });
-
-    Object.keys(this.dom.canvases).forEach(k => {
-      this.dom.canvases[k].classList.toggle('active', k === layerKey);
-    });
-
-    const titles = {
-      albedo: 'Mapa Albedo / Color',
-      normal: 'Mapa de Normales',
-      roughness: 'Mapa de Rugosidad (Roughness)',
-      height: 'Mapa de Altura (Height / Displacement)',
-      ao: 'Oclusión Ambiental (AO)',
-      metallic: 'Mapa Metálico'
-    };
-    this.dom.currentLayerTitle.textContent = titles[layerKey] || layerKey;
-
-    document.querySelectorAll('.layer-control-group').forEach(group => {
-      group.style.display = 'none';
-    });
-    const activeCtrl = document.getElementById(`ctrl-${layerKey}`);
-    if (activeCtrl) activeCtrl.style.display = 'block';
   }
 
   async startCamera() {
@@ -235,26 +235,242 @@ class App {
     }
   }
 
-  capturePhoto() {
+  async capturePhoto() {
+    // Intentar captura con alta resolución mediante ImageCapture API
+    if (this.track && 'ImageCapture' in window) {
+      try {
+        const imageCapture = new ImageCapture(this.track);
+        const blob = await imageCapture.takePhoto();
+        const img = await createImageBitmap(blob);
+        this.stopCamera();
+        this.openCropView(img);
+        return;
+      } catch (e) {
+        console.warn('ImageCapture no disponible o falló, usando captura de vídeo:', e);
+      }
+    }
+
+    // Fallback: Captura del frame del vídeo
     const vw = this.dom.video.videoWidth;
     const vh = this.dom.video.videoHeight;
     if (!vw || !vh) return;
 
-    const cropSize = Math.min(vw, vh);
-    const sx = (vw - cropSize) / 2;
-    const sy = (vh - cropSize) / 2;
+    const tmp = document.createElement('canvas');
+    tmp.width = vw;
+    tmp.height = vh;
+    const ctx = tmp.getContext('2d');
+    ctx.drawImage(this.dom.video, 0, 0, vw, vh);
+
+    const img = new Image();
+    img.src = tmp.toDataURL('image/png');
+    img.onload = () => {
+      this.stopCamera();
+      this.openCropView(img);
+    };
+  }
+
+  handleGallerySelect(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const img = new Image();
+      img.onload = () => {
+        this.stopCamera();
+        this.openCropView(img);
+      };
+      img.src = evt.target.result;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  }
+
+  openCropView(image) {
+    this.loadedImage = image;
+    this.dom.captureView.style.display = 'none';
+    this.dom.resultsView.style.display = 'none';
+    this.dom.cropView.style.display = 'block';
+
+    this.cropState.x = 0.1;
+    this.cropState.y = 0.1;
+    this.cropState.size = 0.8;
+
+    this.renderCropCanvas();
+  }
+
+  renderCropCanvas() {
+    if (!this.loadedImage) return;
+    const canvas = this.dom.cropCanvas;
+    const ctx = canvas.getContext('2d');
+
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * window.devicePixelRatio;
+    canvas.height = rect.height * window.devicePixelRatio;
+
+    const cw = canvas.width;
+    const ch = canvas.height;
+    ctx.clearRect(0, 0, cw, ch);
+
+    const imgW = this.loadedImage.width;
+    const imgH = this.loadedImage.height;
+
+    // Calcular escala para ajustar imagen en canvas manteniendo aspect ratio
+    const scale = Math.min(cw / imgW, ch / imgH);
+    const drawW = imgW * scale;
+    const drawH = imgH * scale;
+    const offsetX = (cw - drawW) / 2;
+    const offsetY = (ch - drawH) / 2;
+
+    this.cropLayout = { scale, drawW, drawH, offsetX, offsetY, cw, ch };
+
+    // Dibujar imagen completa
+    ctx.drawImage(this.loadedImage, offsetX, offsetY, drawW, drawH);
+
+    // Oscurecer área fuera del crop
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    ctx.fillRect(0, 0, cw, ch);
+
+    // Dibujar área seleccionada clara
+    const cropPixelX = offsetX + this.cropState.x * drawW;
+    const cropPixelY = offsetY + this.cropState.y * drawH;
+    const cropPixelSize = this.cropState.size * Math.min(drawW, drawH);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(cropPixelX, cropPixelY, cropPixelSize, cropPixelSize);
+    ctx.clip();
+    ctx.drawImage(this.loadedImage, offsetX, offsetY, drawW, drawH);
+    ctx.restore();
+
+    // Borde de selección
+    ctx.strokeStyle = '#e8a33d';
+    ctx.lineWidth = 3 * window.devicePixelRatio;
+    ctx.strokeRect(cropPixelX, cropPixelY, cropPixelSize, cropPixelSize);
+
+    // Tirador para redimensionar (esquina inferior derecha)
+    const handleSize = 16 * window.devicePixelRatio;
+    ctx.fillStyle = '#e8a33d';
+    ctx.fillRect(cropPixelX + cropPixelSize - handleSize / 2, cropPixelY + cropPixelSize - handleSize / 2, handleSize, handleSize);
+  }
+
+  initCropperEvents() {
+    const canvas = this.dom.cropCanvas;
+
+    const getPos = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      return {
+        x: (clientX - rect.left) * window.devicePixelRatio,
+        y: (clientY - rect.top) * window.devicePixelRatio
+      };
+    };
+
+    const startDrag = (e) => {
+      if (!this.cropLayout) return;
+      const pos = getPos(e);
+      const { offsetX, offsetY, drawW, drawH } = this.cropLayout;
+      const minDim = Math.min(drawW, drawH);
+
+      const cropPixelX = offsetX + this.cropState.x * drawW;
+      const cropPixelY = offsetY + this.cropState.y * drawH;
+      const cropPixelSize = this.cropState.size * minDim;
+      const handleSize = 24 * window.devicePixelRatio;
+
+      // Comprobar tirador esquina inferior derecha
+      if (
+        Math.abs(pos.x - (cropPixelX + cropPixelSize)) < handleSize &&
+        Math.abs(pos.y - (cropPixelY + cropPixelSize)) < handleSize
+      ) {
+        this.cropState.isResizing = true;
+      } else if (
+        pos.x >= cropPixelX && pos.x <= cropPixelX + cropPixelSize &&
+        pos.y >= cropPixelY && pos.y <= cropPixelY + cropPixelSize
+      ) {
+        this.cropState.isDragging = true;
+      }
+
+      if (this.cropState.isDragging || this.cropState.isResizing) {
+        this.cropState.startX = pos.x;
+        this.cropState.startY = pos.y;
+        this.cropState.initialCropX = this.cropState.x;
+        this.cropState.initialCropY = this.cropState.y;
+        this.cropState.initialCropSize = this.cropState.size;
+      }
+    };
+
+    const moveDrag = (e) => {
+      if (!this.cropState.isDragging && !this.cropState.isResizing) return;
+      e.preventDefault();
+      const pos = getPos(e);
+      const { drawW, drawH } = this.cropLayout;
+      const minDim = Math.min(drawW, drawH);
+
+      const dx = (pos.x - this.cropState.startX) / drawW;
+      const dy = (pos.y - this.cropState.startY) / drawH;
+
+      if (this.cropState.isDragging) {
+        let newX = this.cropState.initialCropX + dx;
+        let newY = this.cropState.initialCropY + dy;
+
+        const maxCropX = 1 - (this.cropState.size * minDim) / drawW;
+        const maxCropY = 1 - (this.cropState.size * minDim) / drawH;
+
+        this.cropState.x = Math.max(0, Math.min(maxCropX, newX));
+        this.cropState.y = Math.max(0, Math.min(maxCropY, newY));
+      } else if (this.cropState.isResizing) {
+        const dSize = (pos.x - this.cropState.startX) / minDim;
+        let newSize = this.cropState.initialCropSize + dSize;
+
+        const maxSize = Math.min(
+          (drawW - this.cropState.x * drawW) / minDim,
+          (drawH - this.cropState.y * drawH) / minDim
+        );
+
+        this.cropState.size = Math.max(0.1, Math.min(maxSize, newSize));
+      }
+
+      this.renderCropCanvas();
+    };
+
+    const endDrag = () => {
+      this.cropState.isDragging = false;
+      this.cropState.isResizing = false;
+    };
+
+    canvas.addEventListener('mousedown', startDrag);
+    canvas.addEventListener('mousemove', moveDrag);
+    window.addEventListener('mouseup', endDrag);
+
+    canvas.addEventListener('touchstart', startDrag, { passive: false });
+    canvas.addEventListener('touchmove', moveDrag, { passive: false });
+    window.addEventListener('touchend', endDrag);
+  }
+
+  confirmCrop() {
+    if (!this.loadedImage) return;
+
+    const imgW = this.loadedImage.width;
+    const imgH = this.loadedImage.height;
+    const minDim = Math.min(imgW, imgH);
+
+    // Calcular posición y tamaño real recortado sobre la foto nativa
+    const sourceX = this.cropState.x * imgW;
+    const sourceY = this.cropState.y * imgH;
+    const sourceSize = this.cropState.size * minDim;
 
     const resSetting = this.dom.resSelect.value;
-    let outSize = cropSize;
+    let outSize = Math.round(sourceSize);
     if (resSetting !== 'max') {
-      outSize = Math.min(parseInt(resSetting, 10), cropSize);
+      outSize = Math.min(parseInt(resSetting, 10), outSize);
     }
 
     const tmp = document.createElement('canvas');
     tmp.width = outSize;
     tmp.height = outSize;
     const ctx = tmp.getContext('2d');
-    ctx.drawImage(this.dom.video, sx, sy, cropSize, cropSize, 0, 0, outSize, outSize);
+    ctx.drawImage(this.loadedImage, sourceX, sourceY, sourceSize, sourceSize, 0, 0, outSize, outSize);
 
     const imageData = ctx.getImageData(0, 0, outSize, outSize);
     this.cachedData = {
@@ -264,9 +480,7 @@ class App {
       luminance: PBRGenerator.computeLuminance(imageData)
     };
 
-    this.stopCamera();
-
-    this.dom.captureView.style.display = 'none';
+    this.dom.cropView.style.display = 'none';
     this.dom.resultsView.style.display = 'block';
 
     setTimeout(() => {
@@ -346,6 +560,34 @@ class App {
     ctx.putImageData(imageData, 0, 0);
   }
 
+  setActiveLayer(layerKey) {
+    this.activeLayer = layerKey;
+
+    document.querySelectorAll('.tab-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.layer === layerKey);
+    });
+
+    Object.keys(this.dom.canvases).forEach(k => {
+      this.dom.canvases[k].classList.toggle('active', k === layerKey);
+    });
+
+    const titles = {
+      albedo: 'Mapa Albedo / Color',
+      normal: 'Mapa de Normales',
+      roughness: 'Mapa de Rugosidad (Roughness)',
+      height: 'Mapa de Altura (Height / Displacement)',
+      ao: 'Oclusión Ambiental (AO)',
+      metallic: 'Mapa Metálico'
+    };
+    this.dom.currentLayerTitle.textContent = titles[layerKey] || layerKey;
+
+    document.querySelectorAll('.layer-control-group').forEach(group => {
+      group.style.display = 'none';
+    });
+    const activeCtrl = document.getElementById(`ctrl-${layerKey}`);
+    if (activeCtrl) activeCtrl.style.display = 'block';
+  }
+
   updateLabels() {
     const inp = this.dom.inputs;
     const lbl = this.dom.labels;
@@ -378,6 +620,7 @@ class App {
   }
 
   showCaptureView() {
+    this.dom.cropView.style.display = 'none';
     this.dom.resultsView.style.display = 'none';
     this.dom.captureView.style.display = 'block';
     this.dom.placeholder.style.display = 'flex';

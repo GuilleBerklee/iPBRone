@@ -244,6 +244,24 @@ button.icon svg { width: 16px; height: 16px; }
   display: block;
 }
 
+.crop-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1/1;
+  background: #000;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  touch-action: none;
+}
+
+#cropCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
 .controls-panel {
   background: var(--surface);
   border: 1px solid var(--border);
