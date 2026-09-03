@@ -3,6 +3,7 @@ import { MaterialViewer3D } from './viewer3d.js';
 import { SeamlessEngine, CloneStampTool } from './tiling.js';
 import { LightCorrector } from './light-corrector.js';
 import { TextureExporter } from './exportacion.js';
+import { saveProjectToDB, getAllProjectsFromDB, deleteProjectFromDB, exportProjectAsFile, readProjectFromFile } from './storage.js';
 
 
 class App {
@@ -99,6 +100,16 @@ class App {
 
       tiling3dSlider: document.getElementById('tiling3dSlider'),
       tiling3dVal: document.getElementById('tiling3dVal'),
+
+      projectNameInput: document.getElementById('projectNameInput'),
+      saveProjectBtn: document.getElementById('saveProjectBtn'),
+      openLibraryBtn: document.getElementById('openLibraryBtn'),
+      libraryModal: document.getElementById('libraryModal'),
+      closeLibraryBtn: document.getElementById('closeLibraryBtn'),
+      exportFileBtn: document.getElementById('exportFileBtn'),
+      importFileBtn: document.getElementById('importFileBtn'),
+      projectFileInput: document.getElementById('projectFileInput'),
+      projectList: document.getElementById('projectList'),
 
       canvases: {
         albedo: document.getElementById('albedoCanvas'),
@@ -326,6 +337,53 @@ class App {
       this.dom.tiling3dVal.textContent = `${val}x`;
       this.viewer3D.setTilingAmount(val);
     });
+
+    this.dom.saveProjectBtn?.addEventListener('click', () => this.saveCurrentProject());
+  this.dom.openLibraryBtn?.addEventListener('click', () => {
+    this.renderLibrary();
+    this.dom.libraryModal.style.display = 'flex';
+  });
+  this.dom.closeLibraryBtn?.addEventListener('click', () => {
+    this.dom.libraryModal.style.display = 'none';
+  });
+
+  // Guardar/Exportar como archivo .pbrproj en carpetas del teléfono
+  this.dom.exportFileBtn?.addEventListener('click', () => {
+    if (!this.croppedBaseCanvas.width) {
+      alert('Captura una imagen antes de exportar el proyecto.');
+      return;
+    }
+    const data = this.getCurrentProjectData();
+    exportProjectAsFile(data);
+  });
+
+  // Importar desde archivo .pbrproj
+  this.dom.importFileBtn?.addEventListener('click', () => this.dom.projectFileInput.click());
+  this.dom.projectFileInput?.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      try {
+        const data = await readProjectFromFile(file);
+        this.loadProjectData(data);
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+  });
+
+  // Actualizar los botones de exportación PBR para que usen el nombre del proyecto
+  this.dom.exportZipBtn?.addEventListener('click', () => {
+    const name = this.getProjectName();
+    TextureExporter.exportStandardZip(this.getGeneratedMaps(), name);
+  });
+  this.dom.exportUeBtn?.addEventListener('click', () => {
+    const name = this.getProjectName();
+    TextureExporter.exportUnrealZip(this.getGeneratedMaps(), name);
+  });
+  this.dom.exportBlenderBtn?.addEventListener('click', () => {
+    const name = this.getProjectName();
+    TextureExporter.exportBlenderZip(this.getGeneratedMaps(), name);
+  });
   }
 
   // --- PASO 1: Captura ---
@@ -818,6 +876,111 @@ class App {
     } catch {
       this.dom.hdriSelect.innerHTML = '<option value="">Sin entornos disponibles</option>';
     }
+  }
+
+
+  // Obtiene el nombre sanitizado del proyecto para exportaciones y archivos
+  getProjectName() {
+    const raw = this.dom.projectNameInput?.value.trim() || 'Material_PBR';
+    return raw.replace(/[^a-zA-Z0-9_-]/g, '_');
+  }
+
+  // Empaqueta el estado actual en un objeto ejecutable
+  getCurrentProjectData() {
+    return {
+      id: this.currentProjectId || 'proj_' + Date.now(),
+      name: this.getProjectName(),
+      date: new Date().toLocaleString(),
+      thumbnail: this.finalTileCanvas.toDataURL('image/jpeg', 0.6),
+      imageBase64: this.croppedBaseCanvas.toDataURL('image/png'),
+      settings: {
+        // Sliders de iluminación
+        flatFieldStrength: parseFloat(document.getElementById('flatFieldSlider')?.value || 0),
+        vignette: parseFloat(document.getElementById('vignetteSlider')?.value || 0),
+        gradAngle: parseFloat(document.getElementById('gradAngleSlider')?.value || 0),
+        gradIntensity: parseFloat(document.getElementById('gradIntensitySlider')?.value || 0),
+        
+        // Sliders PBR
+        normalStrength: parseFloat(document.getElementById('normalStrength')?.value || 1),
+        roughnessStrength: parseFloat(document.getElementById('roughnessStrength')?.value || 1),
+        metallic: parseFloat(document.getElementById('metallicSlider')?.value || 0)
+      }
+    };
+  }
+
+  // Guarda en IndexedDB
+  async saveCurrentProject() {
+    if (!this.croppedBaseCanvas.width) {
+      alert('Primero debes capturar o cargar una imagen.');
+      return;
+    }
+    const data = this.getCurrentProjectData();
+    this.currentProjectId = data.id;
+    await saveProjectToDB(data);
+    alert(`Proyecto "${data.name}" guardado correctamente.`);
+  }
+
+  // Carga un objeto de proyecto en la aplicación
+  loadProjectData(data) {
+    if (!data || !data.imageBase64) return;
+    this.currentProjectId = data.id;
+    if (this.dom.projectNameInput) this.dom.projectNameInput.value = data.name;
+
+    const img = new Image();
+    img.onload = () => {
+      this.croppedBaseCanvas.width = img.width;
+      this.croppedBaseCanvas.height = img.height;
+      const ctx = this.croppedBaseCanvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+
+      // Restaurar sliders si existen
+      if (data.settings) {
+        if (document.getElementById('flatFieldSlider')) document.getElementById('flatFieldSlider').value = data.settings.flatFieldStrength || 0;
+        if (document.getElementById('vignetteSlider')) document.getElementById('vignetteSlider').value = data.settings.vignette || 0;
+        if (document.getElementById('metallicSlider')) document.getElementById('metallicSlider').value = data.settings.metallic || 0;
+      }
+
+      this.processLightCorrection(); // Ejecutar procesamiento
+      this.hideAllViews();
+      this.dom.tilingView.style.display = 'block';
+      if (this.dom.libraryModal) this.dom.libraryModal.style.display = 'none';
+    };
+    img.src = data.imageBase64;
+  }
+
+  // Renderizar la lista de proyectos en la librería
+  async renderLibrary() {
+    const projects = await getAllProjectsFromDB();
+    this.dom.projectList.innerHTML = '';
+
+    if (projects.length === 0) {
+      this.dom.projectList.innerHTML = '<p style="grid-column: span 2; font-size:12px; color:var(--text-dim); text-align:center;">No hay proyectos guardados en la app.</p>';
+      return;
+    }
+
+    projects.forEach((proj) => {
+      const card = document.createElement('div');
+      card.className = 'project-card';
+      card.innerHTML = `
+        <img src="${proj.thumbnail || proj.imageBase64}" alt="${proj.name}">
+        <div class="project-card-title">${proj.name}</div>
+        <div class="project-card-date">${proj.date || ''}</div>
+        <div class="project-card-actions">
+          <button class="load-btn primary">Abrir</button>
+          <button class="del-btn danger">🗑️</button>
+        </div>
+      `;
+
+      card.querySelector('.load-btn').addEventListener('click', () => this.loadProjectData(proj));
+      card.querySelector('.del-btn').addEventListener('click', async () => {
+        if (confirm(`¿Eliminar "${proj.name}"?`)) {
+          await deleteProjectFromDB(proj.id);
+          this.renderLibrary();
+        }
+      });
+
+      this.dom.projectList.appendChild(card);
+    });
   }
 }
 

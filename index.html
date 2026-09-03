@@ -25,17 +25,18 @@
 </head>
 <body>
 <div class="app">
-  <header>
-    <h1>Escáner de materiales</h1>
-    <p>Captura una superficie y genera un set de texturas PBR completas.</p>
-
-    <header style="display: flex; justify-content: space-between; align-items: flex-start;">
-      <div>
-        <h1>Escáner de materiales</h1>
-        <input type="text" id="projectName" placeholder="Nombre del proyecto..." value="Nuevo_Material" class="project-input">
+  <header class="main-header">
+    <div class="header-title-row">
+      <h1>Escáner PBR</h1>
+      <div class="header-actions">
+        <button id="saveProjectBtn" class="icon-btn" title="Guardar Proyecto">💾</button>
+        <button id="openLibraryBtn" class="icon-btn" title="Abrir Librería">📚 Librería</button>
       </div>
-  <button id="libraryBtn" class="ghost">📚 Librería</button>
-</header>
+    </div>
+    <div class="project-name-bar">
+      <label for="projectNameInput">Proyecto:</label>
+      <input type="text" id="projectNameInput" class="project-name-input" value="Material_01" placeholder="Nombre del proyecto...">
+    </div>
   </header>
 
   <!-- ETAPA 1: Captura -->
@@ -240,8 +241,6 @@
           <input type="range" id="hdriRotation" min="0" max="360" step="1" value="0">
         </div>
       </div>
-
-      <div id="canvas3d-container"></div>
     </div>
 
     <div class="layer-tabs">
@@ -336,6 +335,28 @@
   <footer>
     <p>Todo el procesamiento ocurre localmente en el dispositivo.</p>
   </footer>
+
+  <div id="libraryModal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>📁 Librería de Materiales</h2>
+        <button id="closeLibraryBtn" class="close-btn">✕</button>
+      </div>
+
+      <div class="storage-selection-box">
+        <p class="storage-title"><b>¿Dónde gestionar tus archivos?</b></p>
+        <div class="storage-buttons">
+          <button id="exportFileBtn" class="secondary-btn">💾 Guardar como archivo (.pbrproj)</button>
+          <button id="importFileBtn" class="secondary-btn">📂 Abrir archivo del teléfono</button>
+          <input type="file" id="projectFileInput" accept=".pbrproj,.json" style="display:none;">
+        </div>
+      </div>
+
+      <h3>Guardados en la app (Interno)</h3>
+      <div id="projectList" class="project-grid">
+        </div>
+    </div>
+  </div>
 </div>
 
 <script type="module" src="app.js"></script>

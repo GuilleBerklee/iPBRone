@@ -1,32 +1,86 @@
-export const DB_NAME = 'PBRScannerDB';
-export const STORE_NAME = 'projects';
+// storage.js - Gestión de IndexedDB y Archivos de Proyecto (.pbrproj)
 
+const DB_NAME = 'PBRScannerDB';
+const DB_VERSION = 1;
+const STORE_NAME = 'projects';
+
+// Inicializar IndexedDB
 export function initDB() {
-  return new PromisePara gestionar proyectos, asignarles un nombre y habilitar exportaciones en un dispositivo móvil, el enfoque más práctico es estructurar el estado de tu aplicación y guardarlo en el almacenamiento interno.
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+      }
+    };
+    request.onsuccess = (e) => resolve(e.target.result);
+    request.onerror = (e) => reject(e.target.error);
+  });
+}
 
-**Modelo de Datos del Proyecto**
-Necesitas definir una estructura (clase o interfaz) que centralice toda la información. Cuando el usuario guarda, serializas esto; cuando abre, lo deserializas.
+// Guardar proyecto en IndexedDB interno
+export async function saveProjectToDB(projectData) {
+  const db = await initDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const req = store.put(projectData);
+    req.onsuccess = () => resolve(true);
+    req.onerror = (e) => reject(e.target.error);
+  });
+}
 
-*   `id`: Identificador único (UUID) para evitar conflictos de nombres.
-*   `nombre`: El nombre que introduce el usuario (ej. "Mi_Diseño_01").
-*   `fechaModificacion`: Para ordenar la lista en la pantalla de la librería.
-*   `datos`: Un objeto con el estado real de tu trabajo (capas, configuraciones, textos, etc.).
+// Obtener todos los proyectos guardados
+export async function getAllProjectsFromDB() {
+  const db = await initDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+    const req = store.getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = (e) => reject(e.target.error);
+  });
+}
 
-**Opciones de Almacenamiento Local**
+// Eliminar un proyecto de la base de datos
+export async function deleteProjectFromDB(id) {
+  const db = await initDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const req = store.delete(id);
+    req.onsuccess = () => resolve(true);
+    req.onerror = (e) => reject(e.target.error);
+  });
+}
 
-| Método | Casos de uso | Ventajas |
-| :--- | :--- | :--- |
-| **Archivos JSON** (Directorio de App) | Proyectos independientes, fáciles de exportar o respaldar en la nube. | Muy fácil de implementar; guardar el estado completo es tan simple como escribir un archivo de texto. |
-| **Base de Datos local** (SQLite, Realm, Hive) | Librerías masivas donde el usuario necesita buscar o filtrar proyectos por nombre. | Lecturas más rápidas al cargar la pantalla inicial de la librería. |
+// Exportar proyecto como archivo local (.pbrproj) en carpetas del teléfono
+export function exportProjectAsFile(projectData) {
+  const jsonStr = JSON.stringify(projectData);
+  const blob = new Blob([jsonStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const safeName = (projectData.name || 'Proyecto').replace(/[^a-zA-Z0-9_-]/g, '_');
+  a.href = url;
+  a.download = `${safeName}.pbrproj`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
-*Recomendación:* Si el estado del proyecto es complejo o jerárquico, guardar cada proyecto como un archivo `.json` independiente en el directorio de documentos de la app suele ser la solución más directa.
-
-**Flujo de la Librería**
-1.  **Listar:** Al entrar a la app, lees la carpeta de documentos. Abres cada archivo guardado, extraes solo el `nombre` y `fechaModificacion`, y construyes la interfaz de tu librería.
-2.  **Cargar:** Al tocar un proyecto, lees el archivo completo, pasas los `datos` a la memoria de la aplicación y abres el editor.
-3.  **Guardar:** Usas el `id` del proyecto como nombre físico del archivo (ej. `550e8400.json`) para que el usuario pueda cambiar el título del proyecto sin romper la ruta de guardado.
-
-**Exportación**
-Cuando el usuario pulsa "Exportar", tomas la variable `nombre` de tu modelo y la sanitizas (reemplazando espacios por guiones y eliminando caracteres especiales). Luego, concatenas la extensión final (por ejemplo, `Mi_Diseno_01.mp4`) y utilizas las APIs del sistema nativo para guardar ese archivo en una carpeta pública, como Descargas o la Galería.
-
-¿En qué tecnología o framework estás desarrollando la app (Flutter, React Native, Kotlin, Swift) para poder proporcionarte la librería exacta de sistema de archivos que necesitas implementar?
+// Cargar proyecto desde un archivo (.pbrproj) subido desde el teléfono
+export function readProjectFromFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        resolve(data);
+      } catch (err) {
+        reject(new Error('El archivo no es un proyecto válido (.pbrproj)'));
+      }
+    };
+    reader.onerror = (err) => reject(err);
+    reader.readAsText(file);
+  });
+}
