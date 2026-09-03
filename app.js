@@ -2,7 +2,7 @@ import { PBRGenerator } from './pbr-generator.js';
 import { MaterialViewer3D } from './viewer3d.js';
 import { SeamlessEngine, CloneStampTool } from './tiling.js';
 import { LightCorrector } from './light-corrector.js';
-import { TextureExporter } from './exporter.js';
+import { TextureExporter } from './exportacion.js';
 
 
 class App {
