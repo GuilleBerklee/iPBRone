@@ -83,9 +83,9 @@
       <canvas id="cropCanvas"></canvas>
     </div>
 
-    <div class="actions" style="margin-top:16px;">
-      <button id="confirmCropBtn" class="primary">Siguiente: Ajustar Seamless</button>
-      <button id="cancelCropBtn" class="ghost">Cancelar</button>
+    <div class="actions">
+      <button id="confirmTilingBtn" class="primary">Generar Texturas PBR</button>
+      <button id="backToLightBtn" class="ghost">Volver a Luz</button>
     </div>
   </div>
 <!-- ETAPA 3: Delight -->
@@ -311,7 +311,11 @@
     </div>
 
     <div class="actions">
-      <button id="downloadAllBtn" class="primary">Descargar paquete (.zip)</button>
+      <div class="export-buttons">
+          <button id="exportZipBtn" class="primary">Exportar Estándar (.zip)</button>
+          <button id="exportUeBtn" class="primary">Exportar Unreal Engine</button>
+          <button id="exportBlenderBtn" class="primary">Exportar Blender</button>
+      </div>
       <button id="retakeBtn" class="ghost">Escanear otro</button>
     </div>
   </div>
