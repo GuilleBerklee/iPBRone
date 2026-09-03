@@ -1,6 +1,8 @@
 import { PBRGenerator } from './pbr-generator.js';
 import { MaterialViewer3D } from './viewer3d.js';
 import { SeamlessEngine, CloneStampTool } from './tiling.js';
+import { LightCorrector } from './light-corrector.js';
+import { TextureExporter } from './exporter.js';
 
 class App {
   constructor() {
@@ -11,21 +13,23 @@ class App {
     this.activeLayer = 'albedo';
     this.loadedImage = null;
 
-    // Canvases intermedios
+    // Canvases intermedios del pipeline
     this.croppedBaseCanvas = document.createElement('canvas');
+    this.correctedBaseCanvas = document.createElement('canvas');
     this.finalTileCanvas = document.createElement('canvas');
 
     this.cropState = { x: 0.1, y: 0.1, size: 0.8, isDragging: false, isResizing: false };
     this.viewer3D = new MaterialViewer3D('canvas3d-container');
 
     this.dom = {
-      // Vistas
+      // Vistas de la aplicación
       captureView: document.getElementById('captureView'),
       cropView: document.getElementById('cropView'),
+      lightView: document.getElementById('lightView'),
       tilingView: document.getElementById('tilingView'),
       resultsView: document.getElementById('results'),
 
-      // Botones
+      // Botones navegación principal
       startCameraBtn: document.getElementById('startCameraBtn'),
       shutterBtn: document.getElementById('shutterBtn'),
       torchBtn: document.getElementById('torchBtn'),
@@ -33,19 +37,36 @@ class App {
       fileInput: document.getElementById('fileInput'),
       confirmCropBtn: document.getElementById('confirmCropBtn'),
       cancelCropBtn: document.getElementById('cancelCropBtn'),
-      confirmTilingBtn: document.getElementById('confirmTilingBtn'),
+      confirmLightBtn: document.getElementById('confirmLightBtn'),
       backToCropBtn: document.getElementById('backToCropBtn'),
+      confirmTilingBtn: document.getElementById('confirmTilingBtn'),
+      backToLightBtn: document.getElementById('backToLightBtn'),
       retakeBtn: document.getElementById('retakeBtn'),
-      downloadAllBtn: document.getElementById('downloadAllBtn'),
+
+      // Botones de Exportación
+      exportZipBtn: document.getElementById('exportZipBtn'),
+      exportUeBtn: document.getElementById('exportUeBtn'),
+      exportBlenderBtn: document.getElementById('exportBlenderBtn'),
       downloadCurrentBtn: document.getElementById('downloadCurrentBtn'),
 
-      // Canvases y Elementos Tiling
+      // Canvases y Elementos Crop / Light
       cropCanvas: document.getElementById('cropCanvas'),
-      tilingCanvas: document.getElementById('tilingCanvas'),
-      tilingGridPreview: document.getElementById('tilingGridPreview'),
+      lightCanvas: document.getElementById('lightCanvas'),
       resSelect: document.getElementById('resSelect'),
 
-      // Sliders Tiling
+      // Sliders Corrección de Luz
+      flatFieldSlider: document.getElementById('flatFieldSlider'),
+      flatFieldVal: document.getElementById('flatFieldVal'),
+      gradAngleSlider: document.getElementById('gradAngleSlider'),
+      gradAngleVal: document.getElementById('gradAngleVal'),
+      gradIntensitySlider: document.getElementById('gradIntensitySlider'),
+      gradIntensityVal: document.getElementById('gradIntensityVal'),
+      vignetteSlider: document.getElementById('vignetteSlider'),
+      vignetteVal: document.getElementById('vignetteVal'),
+
+      // Canvases y Elementos Tiling
+      tilingCanvas: document.getElementById('tilingCanvas'),
+      tilingGridPreview: document.getElementById('tilingGridPreview'),
       enableTiling: document.getElementById('enableTiling'),
       bleedSlider: document.getElementById('bleedSlider'),
       bleedVal: document.getElementById('bleedVal'),
@@ -59,7 +80,7 @@ class App {
       stampHardnessSlider: document.getElementById('stampHardnessSlider'),
       stampHardnessVal: document.getElementById('stampHardnessVal'),
 
-      // Elementos PBR & 3D
+      // Elementos PBR & Visor 3D
       video: document.getElementById('video'),
       placeholder: document.getElementById('placeholder'),
       statusEl: document.getElementById('status'),
@@ -155,7 +176,7 @@ class App {
     this.initCropperEvents();
     this.loadHDRList();
 
-    // Inicializar clonador
+    // Inicializar Tampón de Clonar
     this.cloneTool = new CloneStampTool(this.dom.tilingCanvas, (data) => {
       if (data.event === 'source-set') {
         this.dom.setCloneSourceBtn.textContent = '📍 Origen fijado';
@@ -167,22 +188,41 @@ class App {
   }
 
   bindEvents() {
-    // Etapa 1
+    // --- ETAPA 1: Captura ---
     this.dom.startCameraBtn.addEventListener('click', () => this.startCamera());
     this.dom.shutterBtn.addEventListener('click', () => this.capturePhoto());
     this.dom.torchBtn.addEventListener('click', () => this.toggleTorch());
     this.dom.galleryBtn.addEventListener('click', () => this.dom.fileInput.click());
     this.dom.fileInput.addEventListener('change', (e) => this.handleGallerySelect(e));
 
-    // Etapa 2 -> Etapa 3
+    // --- ETAPA 2: Encuadre / Recorte ---
     this.dom.confirmCropBtn.addEventListener('click', () => this.confirmCrop());
     this.dom.cancelCropBtn.addEventListener('click', () => this.showCaptureView());
 
-    // Etapa 3 -> Etapa 4
-    this.dom.confirmTilingBtn.addEventListener('click', () => this.confirmTiling());
-    this.dom.backToCropBtn.addEventListener('click', () => this.openCropView(this.loadedImage));
+    // --- ETAPA 3: Corrección de Iluminación ---
+    this.dom.confirmLightBtn.addEventListener('click', () => this.confirmLight());
+    if (this.dom.backToCropBtn) {
+      this.dom.backToCropBtn.addEventListener('click', () => this.openCropView(this.loadedImage));
+    }
 
-    // Tiling Controls
+    const lightSliders = [
+      this.dom.flatFieldSlider,
+      this.dom.gradAngleSlider,
+      this.dom.gradIntensitySlider,
+      this.dom.vignetteSlider
+    ];
+    lightSliders.forEach(slider => {
+      if (slider) {
+        slider.addEventListener('input', () => this.updateLightCorrection());
+      }
+    });
+
+    // --- ETAPA 4: Tiling & Retoque ---
+    this.dom.confirmTilingBtn.addEventListener('click', () => this.confirmTiling());
+    if (this.dom.backToLightBtn) {
+      this.dom.backToLightBtn.addEventListener('click', () => this.openLightView());
+    }
+
     this.dom.enableTiling.addEventListener('change', () => this.updateTilingProcess());
     this.dom.bleedSlider.addEventListener('input', (e) => {
       this.dom.bleedVal.textContent = `${Math.round(e.target.value * 100)}%`;
@@ -193,7 +233,7 @@ class App {
       this.updateTilingProcess();
     });
 
-    // Stamp controls
+    // Tampón de clonar
     this.dom.setCloneSourceBtn.addEventListener('click', () => {
       this.cloneTool.isSettingSource = true;
       this.dom.setCloneSourceBtn.textContent = '🎯 Toca el lienzo para fijar origen';
@@ -208,13 +248,31 @@ class App {
       this.cloneTool.brushHardness = parseFloat(e.target.value);
     });
 
-    // Etapa 4 & Resultados
+    // --- ETAPA 5: Resultados, Visor 3D y Exportación ---
     this.dom.retakeBtn.addEventListener('click', () => this.showCaptureView());
-    this.dom.downloadAllBtn.addEventListener('click', () => this.downloadZip());
+
+    // Exportaciones
+    if (this.dom.exportZipBtn) {
+      this.dom.exportZipBtn.addEventListener('click', () => {
+        TextureExporter.exportStandardZip(this.dom.canvases, 'PBR_Material');
+      });
+    }
+    if (this.dom.exportUeBtn) {
+      this.dom.exportUeBtn.addEventListener('click', () => {
+        TextureExporter.exportUnrealEngineZip(this.dom.canvases, 'T_Material');
+      });
+    }
+    if (this.dom.exportBlenderBtn) {
+      this.dom.exportBlenderBtn.addEventListener('click', () => {
+        TextureExporter.exportBlenderZip(this.dom.canvases, 'PBR_Material');
+      });
+    }
+
     this.dom.downloadCurrentBtn.addEventListener('click', () => {
       this.downloadSingleCanvas(this.dom.canvases[this.activeLayer], `${this.activeLayer}.png`);
     });
 
+    // HDRI / Visor 3D Controls
     this.dom.hdriSelect.addEventListener('change', (e) => this.viewer3D.loadHDRI(e.target.value));
     this.dom.hdriRotation.addEventListener('input', (e) => {
       const deg = parseFloat(e.target.value);
@@ -243,17 +301,14 @@ class App {
       this.viewer3D.setHDRIEnabled(e.target.checked);
     });
 
-    // 2. Control de Intensidad HDRI
     this.dom.hdriIntensity.addEventListener('input', (e) => {
       const val = parseFloat(e.target.value);
       this.dom.hdriIntensityVal.textContent = `${val.toFixed(1)}x`;
       this.viewer3D.setHDRIIntensity(val);
     });
 
-    // 3. Ocultar / Mostrar vista previa 2D haciendo clic en el título
     this.dom.toggleMainMapHeader.addEventListener('click', () => {
       const isCollapsed = this.dom.singleCanvasContainer.classList.toggle('collapsed');
-      
       if (isCollapsed) {
         this.dom.mapToggleHint.textContent = '(clic para mostrar)';
         this.dom.mapToggleHint.style.opacity = '0.9';
@@ -352,9 +407,7 @@ class App {
   // --- PASO 2: Crop / Encuadre ---
   openCropView(image) {
     this.loadedImage = image;
-    this.dom.captureView.style.display = 'none';
-    this.dom.tilingView.style.display = 'none';
-    this.dom.resultsView.style.display = 'none';
+    this.hideAllViews();
     this.dom.cropView.style.display = 'block';
 
     this.cropState = { x: 0.1, y: 0.1, size: 0.8 };
@@ -498,19 +551,56 @@ class App {
     const ctx = this.croppedBaseCanvas.getContext('2d');
     ctx.drawImage(this.loadedImage, sourceX, sourceY, sourceSize, sourceSize, 0, 0, outSize, outSize);
 
+    this.openLightView();
+  }
+
+  // --- PASO 3: Corrección de Iluminación ---
+  openLightView() {
+    this.hideAllViews();
+    this.dom.lightView.style.display = 'block';
+    this.updateLightCorrection();
+  }
+
+  updateLightCorrection() {
+    const flatField = this.dom.flatFieldSlider ? parseFloat(this.dom.flatFieldSlider.value) : 0;
+    const gradAngle = this.dom.gradAngleSlider ? parseFloat(this.dom.gradAngleSlider.value) : 0;
+    const gradIntensity = this.dom.gradIntensitySlider ? parseFloat(this.dom.gradIntensitySlider.value) : 0;
+    const vignette = this.dom.vignetteSlider ? parseFloat(this.dom.vignetteSlider.value) : 0;
+
+    // Actualizar etiquetas
+    if (this.dom.flatFieldVal) this.dom.flatFieldVal.textContent = `${Math.round(flatField * 100)}%`;
+    if (this.dom.gradAngleVal) this.dom.gradAngleVal.textContent = `${gradAngle}°`;
+    if (this.dom.gradIntensityVal) this.dom.gradIntensityVal.textContent = gradIntensity.toFixed(2);
+    if (this.dom.vignetteVal) this.dom.vignetteVal.textContent = vignette.toFixed(2);
+
+    LightCorrector.process(
+      this.croppedBaseCanvas,
+      this.correctedBaseCanvas,
+      { flatFieldStrength: flatField, gradAngle, gradIntensity, vignette }
+    );
+
+    const canvasUI = this.dom.lightCanvas;
+    if (canvasUI) {
+      canvasUI.width = this.correctedBaseCanvas.width;
+      canvasUI.height = this.correctedBaseCanvas.height;
+      canvasUI.getContext('2d').drawImage(this.correctedBaseCanvas, 0, 0);
+    }
+  }
+
+  confirmLight() {
     this.openTilingView();
   }
 
-  // --- PASO 3: Tiling & Tampón ---
+  // --- PASO 4: Tiling & Tampón ---
   openTilingView() {
-    this.dom.cropView.style.display = 'none';
+    this.hideAllViews();
     this.dom.tilingView.style.display = 'block';
 
-    // Inicializar lienzo de trabajo con la imagen recortada
+    // Cargar la imagen con iluminación ya corregida
     const tCanvas = this.dom.tilingCanvas;
-    tCanvas.width = this.croppedBaseCanvas.width;
-    tCanvas.height = this.croppedBaseCanvas.height;
-    tCanvas.getContext('2d').drawImage(this.croppedBaseCanvas, 0, 0);
+    tCanvas.width = this.correctedBaseCanvas.width;
+    tCanvas.height = this.correctedBaseCanvas.height;
+    tCanvas.getContext('2d').drawImage(this.correctedBaseCanvas, 0, 0);
 
     this.cloneTool.sourcePoint = null;
     this.dom.setCloneSourceBtn.textContent = '📍 Fijar Origen';
@@ -532,7 +622,7 @@ class App {
       this.finalTileCanvas.getContext('2d').drawImage(this.dom.tilingCanvas, 0, 0);
     }
 
-    // Actualizar fondo en mosaico (3x3 grid preview)
+    // Actualizar vista previa en mosaico 3x3
     const dataUrl = this.finalTileCanvas.toDataURL('image/png');
     this.dom.tilingGridPreview.style.backgroundImage = `url("${dataUrl}")`;
   }
@@ -550,7 +640,7 @@ class App {
       luminance: PBRGenerator.computeLuminance(imageData)
     };
 
-    this.dom.tilingView.style.display = 'none';
+    this.hideAllViews();
     this.dom.resultsView.style.display = 'block';
 
     setTimeout(() => {
@@ -562,7 +652,7 @@ class App {
     }, 50);
   }
 
-  // --- PASO 4: Generación PBR & 3D ---
+  // --- PASO 5: Generación PBR & Visor 3D ---
   processPBR() {
     if (!this.cachedData) return;
     const { imageData, w, h, luminance } = this.cachedData;
@@ -681,10 +771,16 @@ class App {
     lbl.metallicVal.textContent = parseFloat(inp.metallicSlider.value).toFixed(2);
   }
 
-  showCaptureView() {
+  hideAllViews() {
+    this.dom.captureView.style.display = 'none';
     this.dom.cropView.style.display = 'none';
+    if (this.dom.lightView) this.dom.lightView.style.display = 'none';
     this.dom.tilingView.style.display = 'none';
     this.dom.resultsView.style.display = 'none';
+  }
+
+  showCaptureView() {
+    this.hideAllViews();
     this.dom.captureView.style.display = 'block';
     this.dom.placeholder.style.display = 'flex';
     this.dom.shutterBtn.disabled = true;
@@ -702,25 +798,6 @@ class App {
       a.click();
       URL.revokeObjectURL(url);
     }, 'image/png');
-  }
-
-  async downloadZip() {
-    if (!window.JSZip) return;
-    const zip = new window.JSZip();
-    const names = ['albedo', 'normal', 'roughness', 'height', 'ao', 'metallic'];
-
-    for (const name of names) {
-      const blob = await new Promise(res => this.dom.canvases[name].toBlob(res, 'image/png'));
-      if (blob) zip.file(`${name}.png`, blob);
-    }
-
-    const zipBlob = await zip.generateAsync({ type: 'blob' });
-    const url = URL.createObjectURL(zipBlob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'material-pbr.zip';
-    a.click();
-    URL.revokeObjectURL(url);
   }
 
   async loadHDRList() {

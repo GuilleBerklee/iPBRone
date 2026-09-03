@@ -87,6 +87,53 @@
       <button id="cancelCropBtn" class="ghost">Cancelar</button>
     </div>
   </div>
+<!-- ETAPA 3: Delight -->
+  <section id="lightView" class="view" style="display:none;">
+  <h2>Corrección de Iluminación</h2>
+  <p class="subtitle">Aplanar gradientes de luz antes de crear el patrón continuo.</p>
+
+  <div class="canvas-container">
+    <canvas id="lightCanvas"></canvas>
+  </div>
+
+  <div class="controls-panel">
+    <div class="control">
+      <label>
+        <span>Anti-Sombras (Flat-Field)</span>
+        <span id="flatFieldVal">0%</span>
+      </label>
+      <input type="range" id="flatFieldSlider" min="0" max="1" step="0.05" value="0">
+    </div>
+
+    <div class="control">
+      <label>
+        <span>Ángulo de Luz Direccional</span>
+        <span id="gradAngleVal">0°</span>
+      </label>
+      <input type="range" id="gradAngleSlider" min="0" max="360" step="5" value="0">
+    </div>
+
+    <div class="control">
+      <label>
+        <span>Compensación Direccional</span>
+        <span id="gradIntensityVal">0.00</span>
+      </label>
+      <input type="range" id="gradIntensitySlider" min="-0.8" max="0.8" step="0.02" value="0">
+    </div>
+
+    <div class="control">
+      <label>
+        <span>Anti-Viñeteado (Centro/Bordes)</span>
+        <span id="vignetteVal">0.00</span>
+      </label>
+      <input type="range" id="vignetteSlider" min="-0.8" max="0.8" step="0.02" value="0">
+    </div>
+  </div>
+
+  <div class="actions">
+    <button id="confirmLightBtn" class="btn primary">Aplicar y Continuar a Tiling</button>
+  </div>
+  </section>
 
   <!-- ETAPA 3: Edición Seamless, Tiling & Tampón -->
   <div id="tilingView" style="display:none;">
