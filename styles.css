@@ -264,11 +264,11 @@ button.icon svg { width: 16px; height: 16px; }
 
 .tiling-preview-grid {
   width: 100%;
-  height: 220px;
+  aspect-ratio: 1/1; /* Sustituye el height: 220px */
   border-radius: var(--radius);
   border: 1px solid var(--border);
   background-repeat: repeat;
-  background-size: 33.33% 33.33%; /* Representa un mosaico 3x3 */
+  background-size: 33.33% 33.33%;
   background-position: center;
   box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
 }
@@ -297,6 +297,22 @@ button.icon svg { width: 16px; height: 16px; }
 
 .single-canvas-container.collapsed {
   display: none !important;
+}
+
+.canvas-container {
+  width: 100%;
+  aspect-ratio: 1/1;
+  background: #000;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+#lightCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
 }
 
 .controls-panel {
