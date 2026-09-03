@@ -4,6 +4,7 @@ import { SeamlessEngine, CloneStampTool } from './tiling.js';
 import { LightCorrector } from './light-corrector.js';
 import { TextureExporter } from './exporter.js';
 
+
 class App {
   constructor() {
     this.stream = null;
