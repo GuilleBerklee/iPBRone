@@ -378,7 +378,14 @@ class App {
       this.dom.tiling3dVal.textContent = `${val}x`;
       this.viewer3D.setTilingAmount(val);
     });
-
+    const hdriToggleBtn = document.getElementById('hdriToggleBtn');
+    const hdriControls = document.querySelector('.hdri-controls');
+    
+    if (hdriToggleBtn && hdriControls) {
+      hdriToggleBtn.addEventListener('click', () => {
+        hdriControls.classList.toggle('collapsed');
+      });
+    }
     this.dom.saveProjectBtn?.addEventListener('click', () => this.saveCurrentProject());
   this.dom.openLibraryBtn?.addEventListener('click', () => {
     this.renderLibrary();
