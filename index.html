@@ -359,6 +359,26 @@
   </div>
 </div>
 
+<!-- Modal Setup Inicial Obligatorio -->
+<div id="setupModal" class="modal-overlay" style="display: flex; z-index: 2000;">
+  <div class="modal-card" style="text-align: center;">
+    <h2>⚙️ Configuración de Librería</h2>
+    <p style="font-size: 13px; color: var(--text-dim); margin-top: 8px;">
+      Selecciona la ubicación donde deseas organizar y guardar tus proyectos PBR.
+    </p>
+    
+    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
+      <button id="setupSelectFolderBtn" class="primary-btn" style="padding: 12px; background: #2563eb; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">
+        📁 Seleccionar Carpeta en el Teléfono
+      </button>
+      <button id="setupInternalBtn" class="secondary-btn" style="padding: 10px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); border-radius: 6px; cursor: pointer;">
+        📱 Usar Almacenamiento Interno Dedicado
+      </button>
+    </div>
+    <p id="setupPathStatus" style="font-size: 11px; color: var(--text-dim); margin-top: 12px;"></p>
+  </div>
+</div>
+
 <script type="module" src="app.js"></script>
 </body>
 </html>

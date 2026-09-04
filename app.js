@@ -197,6 +197,47 @@ class App {
         this.updateTilingProcess();
       }
     });
+
+      const modal = document.getElementById('setupModal');
+      const folderBtn = document.getElementById('setupSelectFolderBtn');
+      const internalBtn = document.getElementById('setupInternalBtn');
+      const statusText = document.getElementById('setupPathStatus');
+
+      const savedStorageMode = localStorage.getItem('pbr_storage_mode');
+
+      if (savedStorageMode) {
+        modal.style.display = 'none'; // Si ya se configuró, ocultar
+      } else {
+        modal.style.display = 'flex'; // Primera vez: exigir configuración
+      }
+
+      // Opción 1: Elegir carpeta del sistema (File System Access API)
+      folderBtn.addEventListener('click', async () => {
+        if ('showDirectoryPicker' in window) {
+          try {
+            const dirHandle = await window.showDirectoryPicker();
+            localStorage.setItem('pbr_storage_mode', 'folder');
+            localStorage.setItem('pbr_folder_name', dirHandle.name);
+            modal.style.display = 'none';
+            alert(`Librería vinculada a la carpeta: "${dirHandle.name}"`);
+          } catch (err) {
+            statusText.innerText = 'Permiso denegado o no seleccionado.';
+          }
+        } else {
+          // Fallback para navegadores sin acceso directo a carpetas
+          localStorage.setItem('pbr_storage_mode', 'internal');
+          localStorage.setItem('pbr_folder_name', 'Almacenamiento Local App');
+          modal.style.display = 'none';
+          alert('Tu navegador no permite selección directa de carpetas. Se usará el almacenamiento interno reservado.');
+        }
+      });
+
+      // Opción 2: Almacenamiento interno
+      internalBtn.addEventListener('click', () => {
+        localStorage.setItem('pbr_storage_mode', 'internal');
+        localStorage.setItem('pbr_folder_name', 'Almacenamiento Interno App');
+        modal.style.display = 'none';
+      });
   }
 
   bindEvents() {
